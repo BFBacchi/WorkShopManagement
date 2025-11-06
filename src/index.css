@@ -1,0 +1,166 @@
+/**
+ * =====================================
+ *    REPAIR SHOP MANAGEMENT SYSTEM
+ * =====================================
+ * 
+ * Project: Sistema Integral para Talleres de Reparación
+ * Type: Business Management Platform
+ * 
+ * DESIGN PHILOSOPHY
+ * -----------------
+ * Core Principle: Functional Minimalism - Clarity in Intensive Work Environments
+ * Design Style: Clean, professional, module-based color coding
+ * Emotion Goal: Efficiency, trust, clarity, control
+ * 
+ * COLOR SYSTEM (HSL FORMAT)
+ * -------------
+ * Base: 210 15% 97% - Neutral light background for long work sessions
+ * Primary: 210 17% 25% - Professional dark blue-gray for navigation
+ * 
+ * Module Color Coding:
+ * Repairs (Blue): 217 91% 60% - Professional blue for repair tracking
+ * Sales (Green): 142 71% 45% - Success green for point of sale
+ * Inventory (Orange): 25 95% 53% - Warning orange for stock management
+ * Analytics (Purple): 262 52% 47% - Insight purple for dashboard
+ * Customers (Teal): 186 57% 50% - Friendly teal for customer management
+ * 
+ * TYPOGRAPHY
+ * ----------
+ * Display: System sans-serif stack for maximum legibility
+ * Body: Optimized for data tables and forms
+ * 
+ * INTERACTIONS
+ * ------------
+ * Transitions: 200ms for responsiveness
+ * States: Complete coverage for all interactive elements
+ * Touch Targets: Minimum 44px for POS touch interface
+ * ====================================
+ */
+
+ @tailwind base;
+ @tailwind components;
+ @tailwind utilities;
+ 
+ @layer base {
+   :root {
+     --background: 210 15% 97%;
+     --foreground: 210 17% 15%;
+     --card: 0 0% 100%;
+     --card-foreground: 210 17% 15%;
+     --popover: 0 0% 100%;
+     --popover-foreground: 210 17% 15%;
+     --primary: 210 17% 25%;
+     --primary-foreground: 0 0% 98%;
+     --secondary: 210 15% 93%;
+     --secondary-foreground: 210 17% 25%;
+     --muted: 210 15% 93%;
+     --muted-foreground: 210 10% 45%;
+     --accent: 210 15% 93%;
+     --accent-foreground: 210 17% 25%;
+     --destructive: 0 84% 60%;
+     --destructive-foreground: 0 0% 98%;
+     --border: 210 15% 88%;
+     --input: 210 15% 88%;
+     --ring: 210 17% 25%;
+     
+     /* Module Colors */
+     --repairs: 217 91% 60%;
+     --repairs-foreground: 0 0% 100%;
+     --sales: 142 71% 45%;
+     --sales-foreground: 0 0% 100%;
+     --inventory: 25 95% 53%;
+     --inventory-foreground: 0 0% 100%;
+     --analytics: 262 52% 47%;
+     --analytics-foreground: 0 0% 100%;
+     --customers: 186 57% 50%;
+     --customers-foreground: 0 0% 100%;
+     
+     --radius: 0.5rem;
+     
+     --sidebar-background: 0 0% 100%;
+     --sidebar-foreground: 210 17% 25%;
+     --sidebar-primary: 210 17% 25%;
+     --sidebar-primary-foreground: 0 0% 98%;
+     --sidebar-accent: 210 15% 93%;
+     --sidebar-accent-foreground: 210 17% 25%;
+     --sidebar-border: 210 15% 88%;
+     --sidebar-ring: 217 91% 60%;
+   }
+   
+   .dark {
+     --background: 210 20% 10%;
+     --foreground: 0 0% 98%;
+     --card: 210 20% 13%;
+     --card-foreground: 0 0% 98%;
+     --popover: 210 20% 13%;
+     --popover-foreground: 0 0% 98%;
+     --primary: 0 0% 98%;
+     --primary-foreground: 210 17% 25%;
+     --secondary: 210 15% 18%;
+     --secondary-foreground: 0 0% 98%;
+     --muted: 210 15% 18%;
+     --muted-foreground: 210 10% 60%;
+     --accent: 210 15% 18%;
+     --accent-foreground: 0 0% 98%;
+     --destructive: 0 62% 50%;
+     --destructive-foreground: 0 0% 98%;
+     --border: 210 15% 22%;
+     --input: 210 15% 22%;
+     --ring: 0 0% 83%;
+     
+     /* Module Colors - Dark mode adjusted */
+     --repairs: 217 91% 55%;
+     --repairs-foreground: 0 0% 100%;
+     --sales: 142 71% 40%;
+     --sales-foreground: 0 0% 100%;
+     --inventory: 25 95% 48%;
+     --inventory-foreground: 0 0% 100%;
+     --analytics: 262 52% 52%;
+     --analytics-foreground: 0 0% 100%;
+     --customers: 186 57% 45%;
+     --customers-foreground: 0 0% 100%;
+     
+     --sidebar-background: 210 20% 13%;
+     --sidebar-foreground: 0 0% 98%;
+     --sidebar-primary: 0 0% 98%;
+     --sidebar-primary-foreground: 210 17% 25%;
+     --sidebar-accent: 210 15% 18%;
+     --sidebar-accent-foreground: 0 0% 98%;
+     --sidebar-border: 210 15% 22%;
+     --sidebar-ring: 217 91% 60%;
+   }
+ }
+ 
+ @layer base {
+   * {
+     @apply border-border;
+   }
+   body {
+     @apply bg-background text-foreground;
+   }
+ }
+ 
+ @layer utilities {
+   /* Module color utilities */
+   .module-repairs {
+     @apply bg-[hsl(var(--repairs))] text-[hsl(var(--repairs-foreground))];
+   }
+   .module-sales {
+     @apply bg-[hsl(var(--sales))] text-[hsl(var(--sales-foreground))];
+   }
+   .module-inventory {
+     @apply bg-[hsl(var(--inventory))] text-[hsl(var(--inventory-foreground))];
+   }
+   .module-analytics {
+     @apply bg-[hsl(var(--analytics))] text-[hsl(var(--analytics-foreground))];
+   }
+   .module-customers {
+     @apply bg-[hsl(var(--customers))] text-[hsl(var(--customers-foreground))];
+   }
+   
+   /* Touch-optimized buttons for POS */
+   .touch-target {
+     @apply min-h-[44px] min-w-[44px];
+   }
+ }
+ 

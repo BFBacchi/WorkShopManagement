@@ -1,0 +1,23 @@
+<!-- 
+  Template de Email para OTP en Supabase
+  Copia este contenido en Authentication → Email Templates → Magic Link
+-->
+
+<h2>Código de Verificación</h2>
+
+<p>Tu código de verificación de 6 dígitos es:</p>
+
+<div style="background-color: #f3f4f6; padding: 20px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 8px; margin: 20px 0; border-radius: 8px;">
+  {{ .Token }}
+</div>
+
+<p style="color: #6b7280; font-size: 14px;">
+  Este código expira en 1 hora. Si no solicitaste este código, puedes ignorar este mensaje.
+</p>
+
+<p style="margin-top: 20px; color: #6b7280; font-size: 12px;">
+  Taller Pro - Sistema de gestión para talleres de reparación
+</p>
+
+
+
