@@ -1,7 +1,8 @@
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Plus } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { InventoryCatalog } from '@/features/inventory/components/InventoryCatalog';
+import { AddProductDialog } from '@/features/inventory/components/AddProductDialog';
 
 export default function InventoryPage() {
   const navigate = useNavigate();
@@ -17,23 +18,10 @@ export default function InventoryPage() {
             <h1 className="text-2xl font-bold">Inventario</h1>
             <p className="text-muted-foreground">Control de stock y repuestos</p>
           </div>
-          <Button className="module-inventory">
-            <Plus className="w-4 h-4 mr-2" />
-            Agregar Producto
-          </Button>
+          <AddProductDialog />
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Próximamente</CardTitle>
-            <CardDescription>Este módulo estará disponible en la siguiente fase</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              Aquí podrás gestionar todo tu inventario de repuestos, accesorios y equipos.
-            </p>
-          </CardContent>
-        </Card>
+        <InventoryCatalog />
       </div>
     </div>
   );
