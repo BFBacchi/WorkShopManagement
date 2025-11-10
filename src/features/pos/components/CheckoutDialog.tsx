@@ -15,7 +15,8 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { usePOSStore } from '../stores/pos-store';
 import { formatCurrency } from '../utils/pos-utils';
-import type { PaymentMethod, PaymentDetail } from '../types';
+import { ReceiptDialog } from './ReceiptDialog';
+import type { PaymentMethod, PaymentDetail, Sale } from '../types';
 
 interface CheckoutDialogProps {
   open: boolean;
@@ -28,6 +29,8 @@ export function CheckoutDialog({ open, onOpenChange }: CheckoutDialogProps) {
   const [processing, setProcessing] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
   const [cashReceived, setCashReceived] = useState<number>(0);
+  const [completedSale, setCompletedSale] = useState<Sale | null>(null);
+  const [showReceipt, setShowReceipt] = useState(false);
   
   const total = getCartTotal();
   const change = cashReceived - total;
@@ -67,7 +70,11 @@ export function CheckoutDialog({ open, onOpenChange }: CheckoutDialogProps) {
           description: `Venta ${sale.sale_number} registrada exitosamente`,
         });
         
-        // Reset and close
+        // Show receipt
+        setCompletedSale(sale);
+        setShowReceipt(true);
+        
+        // Reset and close checkout
         setSelectedMethod(null);
         setCashReceived(0);
         onOpenChange(false);
@@ -202,6 +209,18 @@ export function CheckoutDialog({ open, onOpenChange }: CheckoutDialogProps) {
           </Button>
         </div>
       </DialogContent>
+      
+      {/* Receipt Dialog */}
+      <ReceiptDialog
+        open={showReceipt}
+        onOpenChange={(open) => {
+          setShowReceipt(open);
+          if (!open) {
+            setCompletedSale(null);
+          }
+        }}
+        sale={completedSale}
+      />
     </Dialog>
   );
 }

@@ -112,7 +112,7 @@ export function AddProductDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-pos-green hover:bg-pos-green/90">
+        <Button className="bg-pos-green hover:bg-pos-green/90 text-white font-medium">
           <Plus className="h-4 w-4 mr-2" />
           Agregar Producto
         </Button>
