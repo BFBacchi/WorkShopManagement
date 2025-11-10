@@ -29,6 +29,12 @@ Sistema completo de gestión para talleres mecánicos que integra punto de venta
   - Registro y gestión de clientes
   - Historial de servicios
   - Información de contacto
+- **🤖 Asistente IA**: Chatbot inteligente con OpenAI
+  - Consultas en lenguaje natural sobre órdenes, productos y ventas
+  - Reconocimiento de voz del navegador
+  - Base de conocimiento técnica para reparaciones comunes
+  - Sugerencias de comandos inteligentes
+  - Acceso a datos en tiempo real desde la base de datos
 
 ### 🔐 Seguridad
 
@@ -83,22 +89,34 @@ cd WorkShopManagement
 npm install
 ```
 
-### 3. Configurar Supabase
+### 3. Configurar variables de entorno
+
+Crea un archivo `.env` en la raíz del proyecto:
+
+```env
+# Supabase Configuration
+VITE_SUPABASE_URL=tu_url_de_supabase
+VITE_SUPABASE_ANON_KEY=tu_anon_key
+
+# OpenAI Configuration (para Asistente IA)
+VITE_OPENAI_API_KEY=tu_openai_api_key
+```
+
+**Configuración de Supabase:**
 
 Sigue las instrucciones detalladas en [SUPABASE_SETUP.md](./SUPABASE_SETUP.md)
 
-**Resumen rápido:**
-
 1. Crea un proyecto en [Supabase](https://supabase.com)
-2. Crea un archivo `.env` en la raíz del proyecto:
+2. Ejecuta el script SQL en Supabase SQL Editor (archivo `supabase-schema.sql`)
+3. Configura las plantillas de email para OTP en Supabase Authentication
 
-```env
-VITE_SUPABASE_URL=tu_url_de_supabase
-VITE_SUPABASE_ANON_KEY=tu_anon_key
-```
+**Configuración de OpenAI (Opcional para Asistente IA):**
 
-3. Ejecuta el script SQL en Supabase SQL Editor (archivo `supabase-schema.sql`)
-4. Configura las plantillas de email para OTP en Supabase Authentication
+1. Crea una cuenta en [OpenAI](https://platform.openai.com)
+2. Genera una API key en [API Keys](https://platform.openai.com/api-keys)
+3. Agrega la clave a tu archivo `.env` como `VITE_OPENAI_API_KEY`
+
+**Nota:** El asistente IA funcionará sin la API key de OpenAI, pero mostrará un mensaje informativo. Para usar todas las funcionalidades de IA, se requiere una API key válida.
 
 ### 4. Ejecutar en desarrollo
 

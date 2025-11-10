@@ -31,24 +31,24 @@
 - [ ] Add afip prossesing payments api
 
 ## Phase 4: [ ] Inventory Management
-- [ ] Create database table for inventory items
-- [ ] Create database table for suppliers
-- [ ] Build inventory catalog with advanced filters
-- [ ] Implement low stock alerts
-- [ ] Add product entry/exit tracking
-- [ ] Create IMEI/serial number registry
-- [ ] Link parts usage to repair orders
-- [ ] Build inventory reports and rotation analysis
+- [x] Create database table for inventory items
+- [x] Create database table for suppliers
+- [x] Build inventory catalog with advanced filters
+- [x] Implement low stock alerts
+- [x] Add product entry/exit tracking
+- [x] Create IMEI/serial number registry
+- [x] Link parts usage to repair orders
+- [x] Build inventory reports and rotation analysis
 
-## Phase 5: [ ] AI Assistant & Chatbot
-- [ ] Integrate DevvAI for conversational interface
-- [ ] Create chat UI accessible from all modules
-- [ ] Implement natural language query processing
-- [ ] Connect chatbot to database for real-time data access
-- [ ] Add voice input capability (browser speech recognition)
-- [ ] Build command suggestions system
-- [ ] Implement data modification via natural language
-- [ ] Create technical knowledge base for common repairs
+## Phase 5: [x] AI Assistant & Chatbot
+- [x] Integrate OpenAI API for conversational interface (replacing DevvAI)
+- [x] Create chat UI accessible from all modules
+- [x] Implement natural language query processing
+- [x] Connect chatbot to database for real-time data access
+- [x] Add voice input capability (browser speech recognition)
+- [x] Build command suggestions system
+- [x] Implement data modification via natural language (command parsing)
+- [x] Create technical knowledge base for common repairs
 
 ## Phase 6: [ ] Analytics Dashboard
 - [ ] Design widget-based dashboard layout

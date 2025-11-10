@@ -10,6 +10,7 @@ import AnalyticsPage from "@/pages/AnalyticsPage";
 import CustomersPage from "@/pages/CustomerPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ChatBot } from "@/features/ai/components/ChatBot";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuthStore } from "@/store/auth-store";
@@ -94,6 +95,7 @@ function App() {
           <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </BrowserRouter>
+        {isAuthenticated && <ChatBot />}
         <Toaster />
       </TooltipProvider>
     </ThemeProvider>
