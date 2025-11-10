@@ -1,4 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import GridLayout, { Layout } from 'react-grid-layout';
+import 'react-grid-layout/css/styles.css';
+import 'react-resizable/css/styles.css';
 import { useAuthStore } from '@/store/auth-store';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -55,6 +58,51 @@ export default function DashboardPage() {
     recentActivity: [],
   });
   const [loading, setLoading] = useState(true);
+  
+  // Grid layout state
+  const getDefaultLayout = (): Layout[] => {
+    return [
+      { i: 'repairs', x: 0, y: 0, w: 1, h: 2, minW: 1, minH: 2 },
+      { i: 'pos', x: 1, y: 0, w: 1, h: 2, minW: 1, minH: 2 },
+      { i: 'inventory', x: 2, y: 0, w: 1, h: 2, minW: 1, minH: 2 },
+      { i: 'analytics', x: 0, y: 2, w: 1, h: 2, minW: 1, minH: 2 },
+      { i: 'customers', x: 1, y: 2, w: 2, h: 2, minW: 1, minH: 2 },
+    ];
+  };
+
+  const [layout, setLayout] = useState<Layout[]>(() => {
+    const savedLayout = localStorage.getItem('dashboard-layout');
+    if (savedLayout) {
+      try {
+        return JSON.parse(savedLayout);
+      } catch {
+        return getDefaultLayout();
+      }
+    }
+    return getDefaultLayout();
+  });
+
+  const handleLayoutChange = useCallback((newLayout: Layout[]) => {
+    setLayout(newLayout);
+    localStorage.setItem('dashboard-layout', JSON.stringify(newLayout));
+  }, []);
+
+  // Calculate grid width based on container
+  const [gridWidth, setGridWidth] = useState(1200);
+
+  useEffect(() => {
+    const updateGridWidth = () => {
+      const container = document.querySelector('.container');
+      if (container) {
+        const containerWidth = container.clientWidth;
+        setGridWidth(Math.max(containerWidth - 64, 768)); // Min width 768px, subtract padding
+      }
+    };
+
+    updateGridWidth();
+    window.addEventListener('resize', updateGridWidth);
+    return () => window.removeEventListener('resize', updateGridWidth);
+  }, []);
 
   useEffect(() => {
     if (user?.uid) {
@@ -424,46 +472,86 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Module Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {modules.map((module) => {
-            const Icon = module.icon;
-            return (
-              <Card 
-                key={module.id}
-                className="hover:shadow-lg transition-shadow duration-200 cursor-pointer group"
-                onClick={() => navigate(module.path)}
-              >
-                <CardHeader>
-                  <div className="flex items-start justify-between mb-2">
-                    <div 
-                      className={`w-12 h-12 rounded-xl flex items-center justify-center module-${module.color} group-hover:scale-110 transition-transform duration-200`}
-                    >
-                      <Icon className="w-6 h-6" />
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold">{module.stats.value}</div>
-                      <div className="text-xs text-muted-foreground">{module.stats.label}</div>
-                    </div>
-                  </div>
-                  <CardTitle className="text-xl">{module.title}</CardTitle>
-                  <CardDescription>{module.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button 
-                    variant="ghost" 
-                    className="w-full justify-start"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(module.path);
-                    }}
+        {/* Module Cards with Drag and Drop */}
+        <div className="mb-8">
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold mb-1">Módulos</h3>
+            <p className="text-sm text-muted-foreground">
+              Arrastra y redimensiona las tarjetas para personalizar tu dashboard
+            </p>
+          </div>
+          <GridLayout
+            className="layout"
+            layout={layout}
+            onLayoutChange={handleLayoutChange}
+            cols={3}
+            rowHeight={120}
+            width={gridWidth}
+            isDraggable={true}
+            isResizable={true}
+            draggableHandle=".drag-handle"
+            resizeHandles={['se']}
+            margin={[16, 16]}
+            containerPadding={[0, 0]}
+            useCSSTransforms={true}
+            compactType="vertical"
+            preventCollision={false}
+          >
+            {modules.map((module) => {
+              const Icon = module.icon;
+              return (
+                <div key={module.id} className="h-full">
+                  <Card 
+                    className="h-full hover:shadow-lg transition-shadow duration-200 cursor-pointer group"
+                    onClick={() => navigate(module.path)}
                   >
-                    Abrir módulo →
-                  </Button>
-                </CardContent>
-              </Card>
-            );
-          })}
+                    <CardHeader>
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="drag-handle cursor-move opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-muted rounded"
+                            title="Arrastra para mover"
+                          >
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="text-muted-foreground">
+                              <circle cx="4" cy="4" r="1.5" fill="currentColor"/>
+                              <circle cx="12" cy="4" r="1.5" fill="currentColor"/>
+                              <circle cx="4" cy="8" r="1.5" fill="currentColor"/>
+                              <circle cx="12" cy="8" r="1.5" fill="currentColor"/>
+                              <circle cx="4" cy="12" r="1.5" fill="currentColor"/>
+                              <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+                            </svg>
+                          </div>
+                          <div 
+                            className={`w-12 h-12 rounded-xl flex items-center justify-center module-${module.color} group-hover:scale-110 transition-transform duration-200`}
+                          >
+                            <Icon className="w-6 h-6" />
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-2xl font-bold">{module.stats.value}</div>
+                          <div className="text-xs text-muted-foreground">{module.stats.label}</div>
+                        </div>
+                      </div>
+                      <CardTitle className="text-xl">{module.title}</CardTitle>
+                      <CardDescription>{module.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Button 
+                        variant="ghost" 
+                        className="w-full justify-start"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(module.path);
+                        }}
+                      >
+                        Abrir módulo →
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </div>
+              );
+            })}
+          </GridLayout>
         </div>
 
         {/* Recent Activity */}
