@@ -50,14 +50,14 @@
 - [x] Implement data modification via natural language (command parsing)
 - [x] Create technical knowledge base for common repairs
 
-## Phase 6: [ ] Analytics Dashboard
-- [ ] Design widget-based dashboard layout
-- [ ] Implement daily/weekly/monthly sales charts
-- [ ] Add repair metrics visualization (types, times, profitability)
-- [ ] Create technician performance reports
-- [ ] Build cash flow tracking
-- [ ] Add best-selling products widget
-- [ ] Implement configurable alerts system
+## Phase 6: [x] Analytics Dashboard
+- [x] Design widget-based dashboard layout
+- [x] Implement daily/weekly/monthly sales charts
+- [x] Add repair metrics visualization (types, times, profitability)
+- [x] Create technician performance reports
+- [x] Build cash flow tracking
+- [x] Add best-selling products widget
+- [x] Implement configurable alerts system
 
 ## Phase 7: [ ] Customer Management & Notifications
 - [ ] Create customer database with history
