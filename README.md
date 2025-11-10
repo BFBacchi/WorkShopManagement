@@ -25,10 +25,13 @@ Sistema completo de gestión para talleres mecánicos que integra punto de venta
   - Productos más vendidos
   - Métricas de reparaciones
   - Gráficos interactivos
-- **👥 Clientes**: Base de datos de clientes
-  - Registro y gestión de clientes
-  - Historial de servicios
-  - Información de contacto
+- **👥 Clientes**: Gestión completa de clientes
+  - Base de datos de clientes con historial completo
+  - Perfiles de cliente con estadísticas detalladas
+  - Sistema de puntos de lealtad
+  - Búsqueda y filtrado avanzado
+  - Recordatorios de mantenimiento automáticos
+  - Notificaciones por email (integración con Resend)
 - **🤖 Asistente IA**: Chatbot inteligente con OpenAI
   - Consultas en lenguaje natural sobre órdenes, productos y ventas
   - Reconocimiento de voz del navegador
@@ -100,6 +103,9 @@ VITE_SUPABASE_ANON_KEY=tu_anon_key
 
 # OpenAI Configuration (para Asistente IA)
 VITE_OPENAI_API_KEY=tu_openai_api_key
+
+# Resend Configuration (para Notificaciones por Email)
+VITE_RESEND_API_KEY=tu_resend_api_key
 ```
 
 **Configuración de Supabase:**
@@ -108,7 +114,8 @@ Sigue las instrucciones detalladas en [SUPABASE_SETUP.md](./SUPABASE_SETUP.md)
 
 1. Crea un proyecto en [Supabase](https://supabase.com)
 2. Ejecuta el script SQL en Supabase SQL Editor (archivo `supabase-schema.sql`)
-3. Configura las plantillas de email para OTP en Supabase Authentication
+3. Ejecuta la migración de Phase 7 (archivo `supabase-phase7-migration.sql`) para agregar campos de lealtad y tabla de recordatorios
+4. Configura las plantillas de email para OTP en Supabase Authentication
 
 **Configuración de OpenAI (Opcional para Asistente IA):**
 
@@ -117,6 +124,15 @@ Sigue las instrucciones detalladas en [SUPABASE_SETUP.md](./SUPABASE_SETUP.md)
 3. Agrega la clave a tu archivo `.env` como `VITE_OPENAI_API_KEY`
 
 **Nota:** El asistente IA funcionará sin la API key de OpenAI, pero mostrará un mensaje informativo. Para usar todas las funcionalidades de IA, se requiere una API key válida.
+
+**Configuración de Resend (Opcional para Notificaciones por Email):**
+
+1. Crea una cuenta en [Resend](https://resend.com)
+2. Genera una API key en [API Keys](https://resend.com/api-keys)
+3. Agrega la clave a tu archivo `.env` como `VITE_RESEND_API_KEY`
+4. Verifica tu dominio en Resend para enviar emails
+
+**Nota:** El sistema de notificaciones funcionará sin la API key de Resend, pero no podrá enviar emails. Los recordatorios se mostrarán en la interfaz pero no se enviarán automáticamente.
 
 ### 4. Ejecutar en desarrollo
 
@@ -153,8 +169,9 @@ El sistema utiliza las siguientes tablas principales:
 
 - **products**: Productos para inventario y POS
 - **sales**: Ventas realizadas
-- **customers**: Clientes del taller
+- **customers**: Clientes del taller (con puntos de lealtad)
 - **repair_orders**: Órdenes de reparación
+- **maintenance_reminders**: Recordatorios de mantenimiento
 
 Todas las tablas implementan Row Level Security (RLS) para asegurar que cada usuario solo acceda a sus propios datos.
 

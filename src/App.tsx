@@ -8,6 +8,7 @@ import POSPage from "@/pages/POSPage";
 import InventoryPage from "@/pages/InventoryPage";
 import AnalyticsPage from "@/pages/AnalyticsPage";
 import CustomersPage from "@/pages/CustomerPage";
+import CustomerProfilePage from "@/pages/CustomerProfilePage";
 import NotFoundPage from "@/pages/NotFoundPage";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ChatBot } from "@/features/ai/components/ChatBot";
@@ -87,6 +88,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <CustomersPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customers/:id"
+            element={
+              <ProtectedRoute>
+                <CustomerProfilePage />
               </ProtectedRoute>
             }
           />
