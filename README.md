@@ -115,7 +115,8 @@ Sigue las instrucciones detalladas en [SUPABASE_SETUP.md](./SUPABASE_SETUP.md)
 1. Crea un proyecto en [Supabase](https://supabase.com)
 2. Ejecuta el script SQL en Supabase SQL Editor (archivo `supabase-schema.sql`)
 3. Ejecuta la migración de Phase 7 (archivo `supabase-phase7-migration.sql`) para agregar campos de lealtad y tabla de recordatorios
-4. Configura las plantillas de email para OTP en Supabase Authentication
+4. Ejecuta la migración de Phase 8 (archivo `supabase-phase8-migration.sql`) para agregar tablas de configuración y plantillas de recibos
+5. Configura las plantillas de email para OTP en Supabase Authentication
 
 **Configuración de OpenAI (Opcional para Asistente IA):**
 
@@ -172,6 +173,8 @@ El sistema utiliza las siguientes tablas principales:
 - **customers**: Clientes del taller (con puntos de lealtad)
 - **repair_orders**: Órdenes de reparación
 - **maintenance_reminders**: Recordatorios de mantenimiento
+- **business_settings**: Configuración del negocio
+- **receipt_templates**: Plantillas personalizadas de recibos
 
 Todas las tablas implementan Row Level Security (RLS) para asegurar que cada usuario solo acceda a sus propios datos.
 
@@ -212,6 +215,7 @@ VITE_SUPABASE_ANON_KEY=tu_clave_anonima_de_supabase
 - `/inventory` - Gestión de inventario
 - `/analytics` - Análisis y reportes
 - `/customers` - Gestión de clientes
+- `/settings` - Configuración del sistema
 
 ## 🤝 Contribuir
 

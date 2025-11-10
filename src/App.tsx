@@ -9,19 +9,29 @@ import InventoryPage from "@/pages/InventoryPage";
 import AnalyticsPage from "@/pages/AnalyticsPage";
 import CustomersPage from "@/pages/CustomerPage";
 import CustomerProfilePage from "@/pages/CustomerProfilePage";
+import SettingsPage from "@/pages/SettingsPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ChatBot } from "@/features/ai/components/ChatBot";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuthStore } from "@/store/auth-store";
+import { useSettingsStore } from "@/features/settings/stores/settings-store";
 
 function App() {
   const { isAuthenticated, initializeAuth } = useAuthStore();
+  const { fetchBusinessSettings, fetchReceiptTemplates } = useSettingsStore();
 
   useEffect(() => {
     initializeAuth();
   }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchBusinessSettings();
+      fetchReceiptTemplates();
+    }
+  }, [isAuthenticated, fetchBusinessSettings, fetchReceiptTemplates]);
 
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
@@ -96,6 +106,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <CustomerProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <SettingsPage />
               </ProtectedRoute>
             }
           />

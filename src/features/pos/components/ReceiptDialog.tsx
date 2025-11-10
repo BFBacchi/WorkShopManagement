@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { usePOSStore } from '../stores/pos-store';
+import { useSettingsStore } from '@/features/settings/stores/settings-store';
 import { formatCurrency } from '../utils/pos-utils';
 import type { Sale } from '../types';
 
@@ -23,6 +24,7 @@ interface ReceiptDialogProps {
 export function ReceiptDialog({ open, onOpenChange, sale }: ReceiptDialogProps) {
   const receiptRef = useRef<HTMLDivElement>(null);
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
+  const { activeReceiptTemplate, businessSettings } = useSettingsStore();
 
   useEffect(() => {
     if (sale) {
@@ -137,19 +139,35 @@ export function ReceiptDialog({ open, onOpenChange, sale }: ReceiptDialogProps) 
 
         <div ref={receiptRef} className="bg-white p-6 rounded-lg border-2 border-gray-200">
           {/* Receipt Header */}
-          <div className="receipt-header text-center border-b border-dashed border-gray-300 pb-4 mb-4">
-            <h2 className="text-xl font-bold mb-1">Taller de Reparación</h2>
-            <p className="text-sm text-gray-600">Sistema de Gestión</p>
-            <p className="text-xs text-gray-500 mt-1">
-              {new Date(sale.sale_date).toLocaleString('es-MX', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
-            </p>
-          </div>
+          {activeReceiptTemplate?.show_business_info && (
+            <div className="receipt-header text-center border-b border-dashed border-gray-300 pb-4 mb-4">
+              {activeReceiptTemplate?.header_text ? (
+                <h2 className="text-xl font-bold mb-1">{activeReceiptTemplate.header_text}</h2>
+              ) : (
+                <h2 className="text-xl font-bold mb-1">
+                  {businessSettings?.business_name || 'Taller de Reparación'}
+                </h2>
+              )}
+              {businessSettings?.business_address && (
+                <p className="text-sm text-gray-600">{businessSettings.business_address}</p>
+              )}
+              {businessSettings?.business_phone && (
+                <p className="text-sm text-gray-600">Tel: {businessSettings.business_phone}</p>
+              )}
+              {activeReceiptTemplate?.show_tax_id && businessSettings?.business_tax_id && (
+                <p className="text-xs text-gray-500">CUIT: {businessSettings.business_tax_id}</p>
+              )}
+              <p className="text-xs text-gray-500 mt-1">
+                {new Date(sale.sale_date).toLocaleString('es-MX', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </p>
+            </div>
+          )}
 
           {/* Sale Number */}
           <div className="text-center mb-4">
@@ -214,28 +232,31 @@ export function ReceiptDialog({ open, onOpenChange, sale }: ReceiptDialogProps) 
           </div>
 
           {/* QR Code */}
-          <div className="qr-code text-center mt-6">
-            <div className="flex justify-center mb-2">
-              {qrCodeDataUrl ? (
-                <img
-                  src={qrCodeDataUrl}
-                  alt="QR Code"
-                  className="w-[120px] h-[120px]"
-                />
-              ) : (
-                <div className="w-[120px] h-[120px] bg-gray-200 animate-pulse rounded" />
-              )}
+          {activeReceiptTemplate?.show_qr_code && (
+            <div className="qr-code text-center mt-6">
+              <div className="flex justify-center mb-2">
+                {qrCodeDataUrl ? (
+                  <img
+                    src={qrCodeDataUrl}
+                    alt="QR Code"
+                    className="w-[120px] h-[120px]"
+                  />
+                ) : (
+                  <div className="w-[120px] h-[120px] bg-gray-200 animate-pulse rounded" />
+                )}
+              </div>
+              <p className="text-xs text-gray-500">
+                Escanea para verificar la venta
+              </p>
             </div>
-            <p className="text-xs text-gray-500">
-              Escanea para verificar la venta
-            </p>
-          </div>
+          )}
 
           {/* Footer */}
-          <div className="receipt-footer text-center mt-6 text-xs text-gray-500">
-            <p>Gracias por su compra</p>
-            <p className="mt-1">www.taller-reparacion.com</p>
-          </div>
+          {activeReceiptTemplate?.footer_text && (
+            <div className="receipt-footer text-center mt-6 text-xs text-gray-500">
+              <p>{activeReceiptTemplate.footer_text}</p>
+            </div>
+          )}
         </div>
 
         {/* Actions */}

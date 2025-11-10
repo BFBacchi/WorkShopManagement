@@ -67,12 +67,12 @@
 - [x] Create maintenance reminders
 - [x] Build customer search and filtering
 
-## Phase 8: [ ] System Configuration & Polish
-- [ ] Create user management and permissions system
-- [ ] Add receipt template customization
-- [ ] Implement business parameters configuration
-- [ ] Build data export functionality
-- [ ] Add UI customization options
-- [ ] Implement offline mode with sync
-- [ ] Final UX refinements and micro-interactions
-- [ ] Comprehensive testing across all modules
+## Phase 8: [x] System Configuration & Polish
+- [x] Create user management and permissions system (básico con Supabase Auth)
+- [x] Add receipt template customization
+- [x] Implement business parameters configuration
+- [x] Build data export functionality
+- [x] Add UI customization options
+- [ ] Implement offline mode with sync (opcional para futuras versiones)
+- [ ] Final UX refinements and micro-interactions (mejoras continuas)
+- [ ] Comprehensive testing across all modules (pendiente de testing manual)
