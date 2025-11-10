@@ -10,13 +10,13 @@ import {
   Users, 
   LogOut,
   Settings,
-  Bell,
   Search,
   Loader2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { ThemeSelector } from '@/components/ThemeSelector';
+import { NotificationDropdown } from '@/components/NotificationDropdown';
 import { supabase } from '@/lib/supabase';
 import { useRepairsStore } from '@/features/repairs/stores/repairs-store';
 import { usePOSStore } from '@/features/pos/stores/pos-store';
@@ -348,10 +348,7 @@ export default function DashboardPage() {
 
           <div className="flex items-center gap-2">
             <ThemeSelector />
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full"></span>
-            </Button>
+            <NotificationDropdown />
             <Button variant="ghost" size="icon" onClick={() => navigate('/settings')}>
               <Settings className="w-5 h-5" />
             </Button>
