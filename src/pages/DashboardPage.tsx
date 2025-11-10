@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
+import { ThemeSelector } from '@/components/ThemeSelector';
 
 export default function DashboardPage() {
   const { user, logout } = useAuthStore();
@@ -98,6 +99,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            <ThemeSelector />
             <Button variant="ghost" size="icon" className="relative">
               <Bell className="w-5 h-5" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full"></span>

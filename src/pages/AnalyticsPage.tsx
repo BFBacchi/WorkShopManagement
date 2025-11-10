@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { ThemeSelector } from '@/components/ThemeSelector';
 
 export default function AnalyticsPage() {
   const navigate = useNavigate();
@@ -17,6 +18,7 @@ export default function AnalyticsPage() {
             <h1 className="text-2xl font-bold">Analíticas</h1>
             <p className="text-muted-foreground">Reportes y métricas del negocio</p>
           </div>
+          <ThemeSelector />
         </div>
 
         <Card>

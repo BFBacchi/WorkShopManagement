@@ -3,6 +3,7 @@ import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { InventoryCatalog } from '@/features/inventory/components/InventoryCatalog';
 import { AddProductDialog } from '@/features/inventory/components/AddProductDialog';
+import { ThemeSelector } from '@/components/ThemeSelector';
 
 export default function InventoryPage() {
   const navigate = useNavigate();
@@ -18,7 +19,10 @@ export default function InventoryPage() {
             <h1 className="text-2xl font-bold">Inventario</h1>
             <p className="text-muted-foreground">Control de stock y repuestos</p>
           </div>
-          <AddProductDialog />
+          <div className="flex items-center gap-2">
+            <ThemeSelector />
+            <AddProductDialog />
+          </div>
         </div>
 
         <InventoryCatalog />

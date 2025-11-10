@@ -10,6 +10,7 @@ import { RepairOrder, Customer } from '@/features/repairs/types';
 import { NewOrderDialog } from '@/features/repairs/components/NewOrderDialog';
 import { OrderList } from '@/features/repairs/components/OrderList';
 import { OrderDetail } from '@/features/repairs/components/OrderDetail';
+import { ThemeSelector } from '@/components/ThemeSelector';
 
 export default function RepairsPage() {
   const navigate = useNavigate();
@@ -147,7 +148,10 @@ export default function RepairsPage() {
               }
             </p>
           </div>
-          {!selectedOrder && <NewOrderDialog onOrderCreated={handleOrderCreated} />}
+          <div className="flex items-center gap-2">
+            <ThemeSelector />
+            {!selectedOrder && <NewOrderDialog onOrderCreated={handleOrderCreated} />}
+          </div>
         </div>
 
         {isLoading && !initialLoadComplete ? (

@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { ThemeSelector } from '@/components/ThemeSelector';
 
 export default function CustomersPage() {
   const navigate = useNavigate();
@@ -17,10 +18,13 @@ export default function CustomersPage() {
             <h1 className="text-2xl font-bold">Clientes</h1>
             <p className="text-muted-foreground">Gestión de base de clientes</p>
           </div>
-          <Button className="module-customers">
-            <Plus className="w-4 h-4 mr-2" />
-            Nuevo Cliente
-          </Button>
+          <div className="flex items-center gap-2">
+            <ThemeSelector />
+            <Button className="module-customers">
+              <Plus className="w-4 h-4 mr-2" />
+              Nuevo Cliente
+            </Button>
+          </div>
         </div>
 
         <Card>

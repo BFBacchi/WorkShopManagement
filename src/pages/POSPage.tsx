@@ -8,6 +8,7 @@ import { ProductCatalog } from '@/features/pos/components/ProductCatalog';
 import { ShoppingCart } from '@/features/pos/components/ShoppingCart';
 import { AddProductDialog } from '@/features/pos/components/AddProductDialog';
 import { CashRegisterClosure } from '@/features/pos/components/CashRegisterClosure';
+import { ThemeSelector } from '@/components/ThemeSelector';
 
 export default function POSPage() {
   const { fetchProducts, products, cart } = usePOSStore();
@@ -32,6 +33,7 @@ export default function POSPage() {
           </div>
           
           <div className="flex items-center gap-2">
+            <ThemeSelector />
             <CashRegisterClosure />
             <AddProductDialog />
           </div>

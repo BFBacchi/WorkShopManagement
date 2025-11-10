@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect } from "react";
+import { ThemeProvider } from "next-themes";
 import LoginPage from "@/pages/LoginPage";
 import DashboardPage from "@/pages/DashboardPage";
 import RepairsPage from "@/pages/RepairsPage";
@@ -21,9 +22,10 @@ function App() {
   }, []);
 
   return (
-    <TooltipProvider>
-      <BrowserRouter>
-        <Routes>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <TooltipProvider>
+        <BrowserRouter>
+          <Routes>
           {/* Public Routes */}
           <Route 
             path="/" 
@@ -90,10 +92,11 @@ function App() {
 
           {/* 404 */}
           <Route path="*" element={<NotFoundPage />} />
-        </Routes>
-      </BrowserRouter>
-      <Toaster />
-    </TooltipProvider>
+          </Routes>
+        </BrowserRouter>
+        <Toaster />
+      </TooltipProvider>
+    </ThemeProvider>
   );
 }
 

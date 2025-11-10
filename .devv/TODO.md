@@ -28,6 +28,7 @@
 - [x] Implement discount system
 - [x] Generate receipt with QR code
 - [x] Add daily cash register closure feature
+- [ ] Add afip prossesing payments api
 
 ## Phase 4: [ ] Inventory Management
 - [ ] Create database table for inventory items

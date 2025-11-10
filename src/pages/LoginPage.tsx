@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Wrench, Mail, KeyRound } from 'lucide-react';
+import { ThemeSelector } from '@/components/ThemeSelector';
 
 export default function LoginPage() {
   const [step, setStep] = useState<'email' | 'otp'>('email');
@@ -78,7 +79,10 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-secondary to-background p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-secondary to-background p-4 relative">
+      <div className="absolute top-4 right-4">
+        <ThemeSelector />
+      </div>
       <Card className="w-full max-w-md shadow-2xl border-border">
         <CardHeader className="space-y-3 text-center">
           <div className="mx-auto w-16 h-16 rounded-2xl bg-primary flex items-center justify-center">
