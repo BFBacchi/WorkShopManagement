@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/auth-store';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,15 +11,247 @@ import {
   LogOut,
   Settings,
   Bell,
-  Search
+  Search,
+  Loader2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { ThemeSelector } from '@/components/ThemeSelector';
+import { supabase } from '@/lib/supabase';
+import { useRepairsStore } from '@/features/repairs/stores/repairs-store';
+import { usePOSStore } from '@/features/pos/stores/pos-store';
+import { useInventoryStore } from '@/features/inventory/stores/inventory-store';
+import { useCustomersStore } from '@/features/customers/stores/customers-store';
+import { formatCurrency } from '@/features/pos/utils/pos-utils';
+
+interface DashboardStats {
+  totalOrders: number;
+  todaySales: number;
+  lowStockCount: number;
+  pendingOrders: number;
+  totalCustomers: number;
+  recentActivity: Array<{
+    action: string;
+    detail: string;
+    time: string;
+    color: string;
+  }>;
+}
 
 export default function DashboardPage() {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
+  const { orders } = useRepairsStore();
+  const { sales, fetchSales } = usePOSStore();
+  const { getLowStockProducts, getOutOfStockProducts, fetchProducts } = useInventoryStore();
+  const { customers, fetchCustomers } = useCustomersStore();
+  
+  const [stats, setStats] = useState<DashboardStats>({
+    totalOrders: 0,
+    todaySales: 0,
+    lowStockCount: 0,
+    pendingOrders: 0,
+    totalCustomers: 0,
+    recentActivity: [],
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (user?.uid) {
+      loadDashboardData();
+    }
+  }, [user?.uid]);
+
+  useEffect(() => {
+    // Update stats when data changes
+    if (user?.uid) {
+      updateStats();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orders.length, sales.length, customers.length, user?.uid]);
+
+  const loadDashboardData = async () => {
+    if (!user?.uid) return;
+    
+    setLoading(true);
+    try {
+      // Load repairs data
+      const { data: ordersData } = await supabase
+        .from('repair_orders')
+        .select('*')
+        .eq('user_id', user.uid)
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (ordersData) {
+        useRepairsStore.getState().setOrders(
+          ordersData.map((item: any) => ({
+            _uid: item.user_id,
+            _id: item.id,
+            order_number: item.order_number,
+            customer_id: item.customer_id,
+            customer_name: item.customer_name,
+            customer_phone: item.customer_phone,
+            device_brand: item.device_brand,
+            device_model: item.device_model,
+            device_imei: item.device_imei,
+            device_password: item.device_password,
+            reported_issue: item.reported_issue,
+            diagnosis: item.diagnosis,
+            estimated_cost: item.estimated_cost,
+            final_cost: item.final_cost,
+            status: item.status,
+            assigned_technician: item.assigned_technician,
+            priority: item.priority,
+            photos: item.photos,
+            notes: item.notes,
+            created_at: item.created_at,
+            updated_at: item.updated_at,
+            estimated_delivery: item.estimated_delivery,
+            delivered_at: item.delivered_at,
+          }))
+        );
+      }
+
+      // Load sales data
+      await fetchSales(100);
+
+      // Load inventory data
+      await fetchProducts();
+
+      // Load customers data
+      await fetchCustomers();
+
+      // Load recent activity
+      await loadRecentActivity();
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadRecentActivity = async () => {
+    if (!user?.uid) return;
+
+    try {
+      const activities: Array<{
+        action: string;
+        detail: string;
+        time: string;
+        color: string;
+        timestamp: number;
+      }> = [];
+
+      // Get recent repair orders
+      const { data: recentOrders } = await supabase
+        .from('repair_orders')
+        .select('order_number, customer_name, device_brand, device_model, created_at, status')
+        .eq('user_id', user.uid)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (recentOrders) {
+        recentOrders.forEach((order: any) => {
+          const createdAt = new Date(order.created_at);
+          const timeAgo = getTimeAgo(createdAt);
+          activities.push({
+            action: order.status === 'delivered' 
+              ? 'Orden entregada' 
+              : order.status === 'finished'
+              ? 'Orden finalizada'
+              : 'Nueva orden de reparación',
+            detail: `${order.device_brand} ${order.device_model} - ${order.customer_name}`,
+            time: timeAgo,
+            color: 'repairs',
+            timestamp: createdAt.getTime(),
+          });
+        });
+      }
+
+      // Get recent sales
+      const { data: recentSales } = await supabase
+        .from('sales')
+        .select('sale_number, customer_name, items, total, created_at')
+        .eq('user_id', user.uid)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (recentSales) {
+        recentSales.forEach((sale: any) => {
+          const items = JSON.parse(sale.items || '[]');
+          const itemNames = items.slice(0, 2).map((item: any) => item.product.name).join(', ');
+          const createdAt = new Date(sale.created_at);
+          const timeAgo = getTimeAgo(createdAt);
+          activities.push({
+            action: 'Venta registrada',
+            detail: itemNames + (items.length > 2 ? '...' : ''),
+            time: timeAgo,
+            color: 'sales',
+            timestamp: createdAt.getTime(),
+          });
+        });
+      }
+
+      // Sort by timestamp (most recent first) and take most recent 5
+      activities.sort((a, b) => b.timestamp - a.timestamp);
+
+      setStats((prev) => ({
+        ...prev,
+        recentActivity: activities.slice(0, 5).map(({ timestamp, ...rest }) => rest),
+      }));
+    } catch (error) {
+      console.error('Error loading recent activity:', error);
+    }
+  };
+
+  const getTimeAgo = (date: Date): string => {
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Hace un momento';
+    if (diffMins < 60) return `Hace ${diffMins} min`;
+    if (diffHours < 24) return `Hace ${diffHours} hora${diffHours > 1 ? 's' : ''}`;
+    return `Hace ${diffDays} día${diffDays > 1 ? 's' : ''}`;
+  };
+
+  const updateStats = () => {
+    if (!user?.uid) return;
+
+    // Calculate today's sales
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todaySales = sales
+      .filter((sale) => {
+        const saleDate = new Date(sale.sale_date);
+        saleDate.setHours(0, 0, 0, 0);
+        return saleDate.getTime() === today.getTime();
+      })
+      .reduce((sum, sale) => sum + sale.total, 0);
+
+    // Calculate pending orders (not delivered or cancelled)
+    const pendingOrders = orders.filter(
+      (order) => order.status !== 'delivered' && order.status !== 'cancelled'
+    ).length;
+
+    // Calculate low stock count
+    const lowStockProducts = getLowStockProducts();
+    const outOfStockProducts = getOutOfStockProducts();
+    const lowStockCount = lowStockProducts.length + outOfStockProducts.length;
+
+    setStats((prev) => ({
+      ...prev,
+      totalOrders: orders.length,
+      todaySales,
+      lowStockCount,
+      pendingOrders,
+      totalCustomers: customers.length,
+      recentActivity: prev.recentActivity, // Keep existing activity
+    }));
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -33,7 +266,10 @@ export default function DashboardPage() {
       icon: Wrench,
       color: 'repairs',
       path: '/repairs',
-      stats: { label: 'Activas', value: '12' }
+      stats: { 
+        label: 'Activas', 
+        value: stats.pendingOrders.toString() 
+      }
     },
     {
       id: 'pos',
@@ -42,7 +278,10 @@ export default function DashboardPage() {
       icon: ShoppingCart,
       color: 'sales',
       path: '/pos',
-      stats: { label: 'Hoy', value: '$2,450' }
+      stats: { 
+        label: 'Hoy', 
+        value: formatCurrency(stats.todaySales) 
+      }
     },
     {
       id: 'inventory',
@@ -51,7 +290,10 @@ export default function DashboardPage() {
       icon: Package,
       color: 'inventory',
       path: '/inventory',
-      stats: { label: 'Alertas', value: '5' }
+      stats: { 
+        label: 'Alertas', 
+        value: stats.lowStockCount.toString() 
+      }
     },
     {
       id: 'analytics',
@@ -60,7 +302,10 @@ export default function DashboardPage() {
       icon: BarChart3,
       color: 'analytics',
       path: '/analytics',
-      stats: { label: 'Esta semana', value: '+18%' }
+      stats: { 
+        label: 'Total órdenes', 
+        value: stats.totalOrders.toString() 
+      }
     },
     {
       id: 'customers',
@@ -69,7 +314,10 @@ export default function DashboardPage() {
       icon: Users,
       color: 'customers',
       path: '/customers',
-      stats: { label: 'Total', value: '342' }
+      stats: { 
+        label: 'Total', 
+        value: stats.totalCustomers.toString() 
+      }
     },
   ];
 
@@ -132,32 +380,52 @@ export default function DashboardPage() {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-2xl font-bold">32</div>
-              <p className="text-sm text-muted-foreground">Órdenes totales</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-2xl font-bold text-[hsl(var(--sales))]">$8,420</div>
-              <p className="text-sm text-muted-foreground">Ventas hoy</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-2xl font-bold text-[hsl(var(--inventory))]">5</div>
-              <p className="text-sm text-muted-foreground">Stock bajo</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-2xl font-bold text-[hsl(var(--repairs))]">12</div>
-              <p className="text-sm text-muted-foreground">Pendientes</p>
-            </CardContent>
-          </Card>
-        </div>
+        {loading ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            {[1, 2, 3, 4].map((i) => (
+              <Card key={i}>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-center h-16">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-2xl font-bold">{stats.totalOrders}</div>
+                <p className="text-sm text-muted-foreground">Órdenes totales</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-2xl font-bold text-[hsl(var(--sales))]">
+                  {formatCurrency(stats.todaySales)}
+                </div>
+                <p className="text-sm text-muted-foreground">Ventas hoy</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-2xl font-bold text-[hsl(var(--inventory))]">
+                  {stats.lowStockCount}
+                </div>
+                <p className="text-sm text-muted-foreground">Stock bajo</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-2xl font-bold text-[hsl(var(--repairs))]">
+                  {stats.pendingOrders}
+                </div>
+                <p className="text-sm text-muted-foreground">Pendientes</p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Module Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -209,22 +477,28 @@ export default function DashboardPage() {
               <CardDescription>Últimas acciones en el sistema</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {[
-                  { action: 'Nueva orden de reparación', detail: 'iPhone 12 - Cambio de pantalla', time: 'Hace 5 min', color: 'repairs' },
-                  { action: 'Venta registrada', detail: 'Funda Samsung A54 x2', time: 'Hace 15 min', color: 'sales' },
-                  { action: 'Stock actualizado', detail: 'Pantallas iPhone 11 +10 unidades', time: 'Hace 1 hora', color: 'inventory' },
-                ].map((activity, index) => (
-                  <div key={index} className="flex items-start gap-3 pb-4 border-b last:border-b-0 last:pb-0">
-                    <div className={`w-2 h-2 rounded-full bg-[hsl(var(--${activity.color}))] mt-2`}></div>
-                    <div className="flex-1">
-                      <p className="font-medium text-sm">{activity.action}</p>
-                      <p className="text-sm text-muted-foreground">{activity.detail}</p>
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : stats.recentActivity.length > 0 ? (
+                <div className="space-y-4">
+                  {stats.recentActivity.map((activity, index) => (
+                    <div key={index} className="flex items-start gap-3 pb-4 border-b last:border-b-0 last:pb-0">
+                      <div className={`w-2 h-2 rounded-full bg-[hsl(var(--${activity.color}))] mt-2`}></div>
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">{activity.action}</p>
+                        <p className="text-sm text-muted-foreground">{activity.detail}</p>
+                      </div>
+                      <span className="text-xs text-muted-foreground">{activity.time}</span>
                     </div>
-                    <span className="text-xs text-muted-foreground">{activity.time}</span>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 text-muted-foreground">
+                  <p>No hay actividad reciente</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
