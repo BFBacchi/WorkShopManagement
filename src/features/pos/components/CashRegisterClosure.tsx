@@ -408,7 +408,7 @@ export function CashRegisterClosure() {
               </Button>
               <Button
                 onClick={handleCloseRegister}
-                className="flex-1 bg-pos-green hover:bg-pos-green/90 text-white"
+                className="flex-1 bg-pos-green hover:bg-pos-green/90 text-black"
               >
                 <FileText className="h-4 w-4 mr-2" />
                 Imprimir Cierre

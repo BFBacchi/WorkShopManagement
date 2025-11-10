@@ -191,13 +191,13 @@ export function CheckoutDialog({ open, onOpenChange }: CheckoutDialogProps) {
           {/* Confirm Button */}
           <Button
             size="lg"
-            className="w-full bg-pos-green hover:bg-pos-green/90 text-white h-14 text-lg font-semibold touch-manipulation"
+            className="w-full bg-pos-green hover:bg-pos-green/90 text-black h-14 text-lg font-semibold touch-manipulation"
             onClick={handlePayment}
             disabled={!selectedMethod || processing}
           >
             {processing ? (
               <>
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin mr-2" />
                 Procesando...
               </>
             ) : (

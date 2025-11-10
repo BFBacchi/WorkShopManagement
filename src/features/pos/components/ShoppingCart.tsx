@@ -250,7 +250,7 @@ export function ShoppingCart() {
         {/* Checkout Button */}
         <Button
           size="lg"
-          className="w-full bg-pos-green hover:bg-pos-green/90 text-white h-14 text-lg font-semibold touch-manipulation"
+          className="w-full bg-pos-green hover:bg-pos-green/90 text-black h-14 text-lg font-semibold touch-manipulation"
           onClick={() => setShowCheckout(true)}
         >
           Procesar Pago

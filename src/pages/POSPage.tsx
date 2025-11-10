@@ -66,7 +66,7 @@ export default function POSPage() {
           <div className="lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-background border-t shadow-lg">
             <Button
               size="lg"
-              className="w-full bg-pos-green hover:bg-pos-green/90 text-white h-14 text-lg font-semibold touch-manipulation"
+              className="w-full bg-pos-green hover:bg-pos-green/90 text-black h-14 text-lg font-semibold touch-manipulation"
               onClick={() => {
                 const cartElement = document.querySelector('[data-cart]');
                 cartElement?.scrollIntoView({ behavior: 'smooth' });
