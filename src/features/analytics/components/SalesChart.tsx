@@ -32,11 +32,7 @@ export function SalesChart() {
     if (period === 'daily') {
       return date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
     } else if (period === 'weekly') {
-      // Calculate week number manually
-      const startOfYear = new Date(date.getFullYear(), 0, 1);
-      const days = Math.floor((date.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
-      const weekNumber = Math.ceil((days + startOfYear.getDay() + 1) / 7);
-      return `Sem ${weekNumber}`;
+      return `Sem ${date.toLocaleDateString('es-ES', { week: 'numeric' })}`;
     } else {
       return date.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
     }

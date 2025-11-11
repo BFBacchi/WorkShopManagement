@@ -160,7 +160,7 @@ export function ExportDataTab() {
               <Label htmlFor="format">Formato</Label>
               <Select
                 value={exportOptions.format}
-                onValueChange={(value: 'csv' | 'xlsx' | 'pdf') =>
+                onValueChange={(value: 'csv' | 'json') =>
                   setExportOptions({ ...exportOptions, format: value })
                 }
               >
@@ -169,8 +169,7 @@ export function ExportDataTab() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="csv">CSV</SelectItem>
-                  <SelectItem value="xlsx">Excel (XLSX)</SelectItem>
-                  <SelectItem value="pdf">PDF</SelectItem>
+                  <SelectItem value="json">JSON</SelectItem>
                 </SelectContent>
               </Select>
             </div>

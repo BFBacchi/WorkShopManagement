@@ -4,6 +4,10 @@ import { supabase } from '@/lib/supabase';
 
 export type UserRole = 'admin' | 'manager' | 'employee' | 'technician';
 
+// Variables globales para manejar la limpieza de suscripciones
+let authSubscription: { unsubscribe: () => void } | null = null;
+let sessionCheckInterval: NodeJS.Timeout | null = null;
+
 interface User {
   uid: string;
   email: string;
@@ -52,12 +56,28 @@ export const useAuthStore = create<AuthStore>()(
         }
       },
 
-      refreshUserData: async () => {
+      refreshUserData: async (retries = 3) => {
         try {
-          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+          // Intentar refrescar la sesión si es necesario
+          let { data: { session }, error: sessionError } = await supabase.auth.getSession();
+          
+          // Si hay error, intentar refrescar la sesión
+          if (sessionError && retries > 0) {
+            console.log('Session error, attempting to refresh...', sessionError);
+            const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+            if (!refreshError && refreshData.session) {
+              session = refreshData.session;
+              sessionError = null;
+            }
+          }
           
           if (sessionError) {
             console.error('Error getting session:', sessionError);
+            // Si aún hay error y tenemos reintentos, intentar de nuevo
+            if (retries > 0) {
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              return get().refreshUserData(retries - 1);
+            }
             set({ user: null, isAuthenticated: false, isLoading: false });
             return;
           }
@@ -166,30 +186,96 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       initializeAuth: async () => {
+        // Limpiar suscripciones anteriores si existen
+        if (authSubscription) {
+          authSubscription.unsubscribe();
+          authSubscription = null;
+        }
+        if (sessionCheckInterval) {
+          clearInterval(sessionCheckInterval);
+          sessionCheckInterval = null;
+        }
+
         // Establecer loading al inicio
         set({ isLoading: true });
 
         // Listen for auth state changes
-        supabase.auth.onAuthStateChange(async (_event, session) => {
-          if (session?.user) {
-            try {
-              await get().refreshUserData();
-            } catch (error) {
-              console.error('Error refreshing user data on auth change:', error);
-              set({ isAuthenticated: false, user: null, isLoading: false });
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          async (event, session) => {
+            console.log('Auth state changed:', event, session?.user?.id);
+            
+            switch (event) {
+              case 'SIGNED_IN':
+              case 'TOKEN_REFRESHED':
+              case 'USER_UPDATED':
+                if (session?.user) {
+                  try {
+                    await get().refreshUserData();
+                  } catch (error) {
+                    console.error('Error refreshing user data on auth change:', error);
+                    set({ isAuthenticated: false, user: null, isLoading: false });
+                  }
+                }
+                break;
+              
+              case 'SIGNED_OUT':
+              case 'USER_DELETED':
+                set({ isAuthenticated: false, user: null, isLoading: false });
+                break;
+              
+              case 'PASSWORD_RECOVERY':
+                // No action needed
+                break;
             }
-          } else {
-            set({ isAuthenticated: false, user: null, isLoading: false });
           }
-        });
+        );
+        authSubscription = subscription;
 
-        // Check initial session
+        // Verificar sesión inicial
         try {
           await get().checkAuth();
         } catch (error) {
           console.error('Error initializing auth:', error);
           set({ isAuthenticated: false, user: null, isLoading: false });
         }
+
+        // Verificación periódica de sesión cada 5 minutos
+        sessionCheckInterval = setInterval(async () => {
+          try {
+            const { data: { session }, error } = await supabase.auth.getSession();
+            
+            if (error) {
+              console.error('Error checking session:', error);
+              // Si hay error, intentar refrescar
+              try {
+                const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
+                if (refreshError || !refreshedSession) {
+                  console.warn('Could not refresh session, logging out');
+                  set({ isAuthenticated: false, user: null });
+                } else {
+                  // Sesión refrescada exitosamente
+                  await get().refreshUserData();
+                }
+              } catch (refreshErr) {
+                console.error('Error refreshing session:', refreshErr);
+                set({ isAuthenticated: false, user: null });
+              }
+              return;
+            }
+
+            if (!session && get().isAuthenticated) {
+              // Sesión expirada pero el estado dice que está autenticado
+              console.warn('Session expired, logging out');
+              set({ isAuthenticated: false, user: null });
+            } else if (session && !get().isAuthenticated) {
+              // Hay sesión pero el estado dice que no está autenticado
+              console.log('Session found, refreshing user data');
+              await get().refreshUserData();
+            }
+          } catch (error) {
+            console.error('Error in periodic session check:', error);
+          }
+        }, 5 * 60 * 1000); // Cada 5 minutos
       },
     }),
     {

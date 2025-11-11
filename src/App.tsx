@@ -34,6 +34,22 @@ function App() {
     }
   }, [isAuthenticated, isLoading, fetchBusinessSettings, fetchReceiptTemplates]);
 
+  // Reconectar cuando la pestaña vuelve a estar visible
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isAuthenticated) {
+        // Verificar sesión cuando la pestaña vuelve a estar visible
+        const { checkAuth } = useAuthStore.getState();
+        checkAuth().catch(console.error);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isAuthenticated]);
+
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <TooltipProvider>

@@ -3,14 +3,14 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth-store';
-import type { Product, ProductCategory, ProductStatus } from '../../pos/types';
+import type { Product, ProductCategory, ProductStatus } from '../pos/types';
 import type { 
   Supplier, 
   InventoryMovement, 
   SerialRegistry, 
   RepairOrderPart,
   InventoryFilters 
-} from '../types';
+} from './types';
 
 interface InventoryState {
   // Products (reused from POS but with inventory-specific operations)
