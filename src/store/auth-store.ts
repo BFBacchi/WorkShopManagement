@@ -2,10 +2,15 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '@/lib/supabase';
 
+export type UserRole = 'admin' | 'manager' | 'employee' | 'technician';
+
 interface User {
   uid: string;
   email: string;
   name?: string;
+  role?: UserRole;
+  branchId?: string | null;
+  branchName?: string;
 }
 
 interface AuthStore {
@@ -14,11 +19,11 @@ interface AuthStore {
   isLoading: boolean;
   
   // Actions
-  sendOTP: (email: string) => Promise<void>;
-  verifyOTP: (email: string, code: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
   initializeAuth: () => Promise<void>;
+  refreshUserData: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthStore>()(
@@ -28,49 +33,115 @@ export const useAuthStore = create<AuthStore>()(
       isAuthenticated: false,
       isLoading: false,
 
-      sendOTP: async (email: string) => {
+      signIn: async (email: string, password: string) => {
         set({ isLoading: true });
         try {
-          const { error } = await supabase.auth.signInWithOtp({
+          const { data, error } = await supabase.auth.signInWithPassword({
             email,
-            options: {
-              shouldCreateUser: true,
-              // Force OTP code instead of magic link
-              emailRedirectTo: undefined,
-            },
-          });
-          if (error) throw error;
-        } finally {
-          set({ isLoading: false });
-        }
-      },
-
-      verifyOTP: async (email: string, code: string) => {
-        set({ isLoading: true });
-        try {
-          const { data, error } = await supabase.auth.verifyOtp({
-            email,
-            token: code,
-            type: 'email',
+            password,
           });
           
           if (error) throw error;
           
           if (data.user) {
-            const user: User = {
-              uid: data.user.id,
-              email: data.user.email || email,
-              name: data.user.user_metadata?.name || data.user.email?.split('@')[0],
-            };
-            set({
-              user,
-              isAuthenticated: true,
-              isLoading: false,
-            });
+            await get().refreshUserData();
           }
         } catch (error) {
           set({ isLoading: false });
           throw error;
+        }
+      },
+
+      refreshUserData: async () => {
+        try {
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+          
+          if (sessionError) {
+            console.error('Error getting session:', sessionError);
+            set({ user: null, isAuthenticated: false, isLoading: false });
+            return;
+          }
+
+          if (!session?.user) {
+            set({ user: null, isAuthenticated: false, isLoading: false });
+            return;
+          }
+
+          // Intentar obtener información del empleado si existe la tabla
+          try {
+            const { data: employee, error: employeeError } = await supabase
+              .from('employees')
+              .select(`
+                id,
+                email,
+                full_name,
+                role,
+                branch_id,
+                status,
+                branches (
+                  id,
+                  name
+                )
+              `)
+              .eq('id', session.user.id)
+              .single();
+
+            // Si hay error pero no es porque la tabla no existe, lanzar el error
+            if (employeeError) {
+              // Si el error es porque no existe la tabla o el registro, usar fallback
+              if (employeeError.code === 'PGRST116' || employeeError.code === '42P01') {
+                console.log('Employee table or record not found, using basic auth');
+              } else {
+                throw employeeError;
+              }
+            } else if (employee && employee.status === 'active') {
+              const branchesData = employee.branches as { id: string; name: string } | { id: string; name: string }[] | null;
+              const branchName = Array.isArray(branchesData) 
+                ? branchesData[0]?.name 
+                : branchesData?.name;
+
+              const user: User = {
+                uid: employee.id,
+                email: employee.email,
+                name: employee.full_name,
+                role: employee.role as UserRole,
+                branchId: employee.branch_id,
+                branchName: branchName,
+              };
+
+              set({
+                user,
+                isAuthenticated: true,
+                isLoading: false,
+              });
+              return;
+            }
+          } catch (employeeError: unknown) {
+            // Si el error es porque la tabla no existe o el registro no existe, usar fallback
+            const error = employeeError as { code?: string; message?: string };
+            if (error?.code === 'PGRST116' || error?.code === '42P01' || error?.message?.includes('relation') || error?.message?.includes('does not exist')) {
+              console.log('Employee table or record not found, using basic auth');
+            } else {
+              console.error('Error fetching employee data:', employeeError);
+              // Continuar con fallback en lugar de fallar completamente
+            }
+          }
+
+          // Fallback: usar datos básicos de auth
+          const user: User = {
+            uid: session.user.id,
+            email: session.user.email || '',
+            name: session.user.user_metadata?.name || session.user.email?.split('@')[0],
+          };
+
+          set({
+            user,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+        } catch (error) {
+          console.error('Error in refreshUserData:', error);
+          set({ user: null, isAuthenticated: false, isLoading: false });
         }
       },
 
@@ -86,42 +157,39 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       checkAuth: async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          const user: User = {
-            uid: session.user.id,
-            email: session.user.email || '',
-            name: session.user.user_metadata?.name || session.user.email?.split('@')[0],
-          };
-          set({
-            user,
-            isAuthenticated: true,
-          });
-        } else {
-          set({ isAuthenticated: false, user: null });
+        try {
+          await get().refreshUserData();
+        } catch (error) {
+          console.error('Error checking auth:', error);
+          set({ isAuthenticated: false, user: null, isLoading: false });
         }
       },
 
       initializeAuth: async () => {
+        // Establecer loading al inicio
+        set({ isLoading: true });
+
         // Listen for auth state changes
-        supabase.auth.onAuthStateChange((_event, session) => {
+        supabase.auth.onAuthStateChange(async (_event, session) => {
           if (session?.user) {
-            const user: User = {
-              uid: session.user.id,
-              email: session.user.email || '',
-              name: session.user.user_metadata?.name || session.user.email?.split('@')[0],
-            };
-            set({
-              user,
-              isAuthenticated: true,
-            });
+            try {
+              await get().refreshUserData();
+            } catch (error) {
+              console.error('Error refreshing user data on auth change:', error);
+              set({ isAuthenticated: false, user: null, isLoading: false });
+            }
           } else {
-            set({ isAuthenticated: false, user: null });
+            set({ isAuthenticated: false, user: null, isLoading: false });
           }
         });
 
         // Check initial session
-        await get().checkAuth();
+        try {
+          await get().checkAuth();
+        } catch (error) {
+          console.error('Error initializing auth:', error);
+          set({ isAuthenticated: false, user: null, isLoading: false });
+        }
       },
     }),
     {

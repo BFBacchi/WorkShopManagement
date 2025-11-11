@@ -6,76 +6,42 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Wrench, Mail, KeyRound } from 'lucide-react';
+import { Wrench, Mail, Lock } from 'lucide-react';
 import { ThemeSelector } from '@/components/ThemeSelector';
 
 export default function LoginPage() {
-  const [step, setStep] = useState<'email' | 'otp'>('email');
   const [email, setEmail] = useState('');
-  const [otp, setOtp] = useState('');
-  const { sendOTP, verifyOTP, isLoading } = useAuthStore();
+  const [password, setPassword] = useState('');
+  const { signIn, isLoading } = useAuthStore();
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const handleSendOTP = async (e: React.FormEvent) => {
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email.trim()) {
+    if (!email.trim() || !password.trim()) {
       toast({
         title: "Error",
-        description: "Por favor ingresa tu correo electrónico",
+        description: "Por favor ingresa tu correo electrónico y contraseña",
         variant: "destructive",
       });
       return;
     }
 
     try {
-      await sendOTP(email);
-      setStep('otp');
-      toast({
-        title: "Código enviado",
-        description: "Revisa tu correo electrónico",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudo enviar el código. Intenta de nuevo.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleVerifyOTP = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!otp.trim()) {
-      toast({
-        title: "Error",
-        description: "Por favor ingresa el código",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      await verifyOTP(email, otp);
+      await signIn(email, password);
       toast({
         title: "¡Bienvenido!",
         description: "Has iniciado sesión correctamente",
       });
       navigate('/dashboard');
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Código incorrecto. Intenta de nuevo.",
+        description: error.message || "Credenciales incorrectas. Intenta de nuevo.",
         variant: "destructive",
       });
     }
-  };
-
-  const handleBack = () => {
-    setStep('email');
-    setOtp('');
   };
 
   return (
@@ -94,76 +60,46 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {step === 'email' ? (
-            <div key="email-form">
-              <form onSubmit={handleSendOTP} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="flex items-center gap-2">
-                    <Mail className="w-4 h-4" />
-                    Correo electrónico
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="tu@correo.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="h-11"
-                    autoFocus
-                  />
-                </div>
-                <Button
-                  type="submit"
-                  className="w-full h-11"
-                  disabled={isLoading}
-                >
-                  {isLoading ? 'Enviando...' : 'Enviar código'}
-                </Button>
-              </form>
+          <form onSubmit={handleSignIn} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email" className="flex items-center gap-2">
+                <Mail className="w-4 h-4" />
+                Correo electrónico
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="tu@correo.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="h-11"
+                autoFocus
+                required
+              />
             </div>
-          ) : (
-            <div key="otp-form">
-              <form onSubmit={handleVerifyOTP} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="otp" className="flex items-center gap-2">
-                    <KeyRound className="w-4 h-4" />
-                    Código de verificación
-                  </Label>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Ingresa el código de 6 dígitos enviado a <strong>{email}</strong>
-                  </p>
-                  <Input
-                    id="otp"
-                    type="text"
-                    placeholder="123456"
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
-                    maxLength={6}
-                    className="h-11 text-center text-lg tracking-widest"
-                    autoFocus
-                  />
-                </div>
-                <div className="flex gap-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="flex-1 h-11"
-                    onClick={handleBack}
-                    disabled={isLoading}
-                  >
-                    Atrás
-                  </Button>
-                  <Button
-                    type="submit"
-                    className="flex-1 h-11"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? 'Verificando...' : 'Verificar'}
-                  </Button>
-                </div>
-              </form>
+            <div className="space-y-2">
+              <Label htmlFor="password" className="flex items-center gap-2">
+                <Lock className="w-4 h-4" />
+                Contraseña
+              </Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="h-11"
+                required
+              />
             </div>
-          )}
+            <Button
+              type="submit"
+              className="w-full h-11"
+              disabled={isLoading}
+            >
+              {isLoading ? 'Iniciando sesión...' : 'Iniciar sesión'}
+            </Button>
+          </form>
         </CardContent>
       </Card>
     </div>

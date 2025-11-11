@@ -11,7 +11,8 @@ import {
   LogOut,
   Settings,
   Search,
-  Loader2
+  Loader2,
+  Building2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
@@ -317,6 +318,18 @@ export default function DashboardPage() {
       stats: { 
         label: 'Total', 
         value: stats.totalCustomers.toString() 
+      }
+    },
+    {
+      id: 'backoffice',
+      title: 'Backoffice',
+      description: 'Gestión de sucursales y empleados',
+      icon: Building2,
+      color: 'analytics',
+      path: '/backoffice',
+      stats: { 
+        label: 'Admin', 
+        value: 'Panel' 
       }
     },
   ];

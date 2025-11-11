@@ -18,15 +18,14 @@ export function RepairTicket({ order, size = 'default' }: RepairTicketProps) {
   const handlePrint = () => {
     if (!ticketRef.current) return;
     
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-
-    const printContent = ticketRef.current.innerHTML;
+    // Clone the element to avoid modifying the original
+    const clonedElement = ticketRef.current.cloneNode(true) as HTMLElement;
+    const printContent = clonedElement.innerHTML;
     const businessName = businessSettings?.business_name || 'Taller de Reparaciones';
     const businessAddress = businessSettings?.business_address || '';
     const businessPhone = businessSettings?.business_phone || '';
 
-    printWindow.document.write(`
+    const htmlContent = `
       <!DOCTYPE html>
       <html>
         <head>
@@ -136,13 +135,26 @@ export function RepairTicket({ order, size = 'default' }: RepairTicketProps) {
           ${printContent}
         </body>
       </html>
-    `);
+    `;
+
+    // Use a safer method to write content
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    printWindow.document.open('text/html', 'replace');
+    printWindow.document.write(htmlContent);
     printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => {
+    
+    // Use function reference instead of arrow function in setTimeout
+    const printAndClose = () => {
       printWindow.print();
       printWindow.close();
-    }, 250);
+    };
+    
+    printWindow.onload = () => {
+      printWindow.focus();
+      setTimeout(printAndClose, 250);
+    };
   };
 
   const renderTicketCopy = (copyLabel: string) => (

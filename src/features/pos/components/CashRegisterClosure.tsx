@@ -108,9 +108,7 @@ export function CashRegisterClosure() {
     };
 
     // Print closure report
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(`
+    const htmlContent = `
         <!DOCTYPE html>
         <html>
           <head>
@@ -262,12 +260,24 @@ export function CashRegisterClosure() {
             </div>
           </body>
         </html>
-      `);
+      `;
+
+    // Use a safer method to write content
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.open('text/html', 'replace');
+      printWindow.document.write(htmlContent);
       printWindow.document.close();
-      printWindow.focus();
-      setTimeout(() => {
+      
+      // Use function reference instead of arrow function in setTimeout
+      const printReport = () => {
         printWindow.print();
-      }, 250);
+      };
+      
+      printWindow.onload = () => {
+        printWindow.focus();
+        setTimeout(printReport, 250);
+      };
     }
 
     toast({

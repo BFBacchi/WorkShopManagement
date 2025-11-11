@@ -10,6 +10,7 @@ import AnalyticsPage from "@/pages/AnalyticsPage";
 import CustomersPage from "@/pages/CustomerPage";
 import CustomerProfilePage from "@/pages/CustomerProfilePage";
 import SettingsPage from "@/pages/SettingsPage";
+import BackofficePage from "@/pages/BackofficePage";
 import NotFoundPage from "@/pages/NotFoundPage";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { ChatBot } from "@/features/ai/components/ChatBot";
@@ -19,7 +20,7 @@ import { useAuthStore } from "@/store/auth-store";
 import { useSettingsStore } from "@/features/settings/stores/settings-store";
 
 function App() {
-  const { isAuthenticated, initializeAuth } = useAuthStore();
+  const { isAuthenticated, isLoading, initializeAuth } = useAuthStore();
   const { fetchBusinessSettings, fetchReceiptTemplates } = useSettingsStore();
 
   useEffect(() => {
@@ -27,11 +28,11 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && !isLoading) {
       fetchBusinessSettings();
       fetchReceiptTemplates();
     }
-  }, [isAuthenticated, fetchBusinessSettings, fetchReceiptTemplates]);
+  }, [isAuthenticated, isLoading, fetchBusinessSettings, fetchReceiptTemplates]);
 
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
@@ -42,13 +43,35 @@ function App() {
           <Route 
             path="/" 
             element={
-              isAuthenticated ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />
+              isLoading ? (
+                <div className="min-h-screen flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                    <p className="mt-2 text-sm text-muted-foreground">Cargando...</p>
+                  </div>
+                </div>
+              ) : isAuthenticated ? (
+                <Navigate to="/dashboard" replace />
+              ) : (
+                <Navigate to="/login" replace />
+              )
             } 
           />
           <Route 
             path="/login" 
             element={
-              isAuthenticated ? <Navigate to="/dashboard" replace /> : <LoginPage />
+              isLoading ? (
+                <div className="min-h-screen flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                    <p className="mt-2 text-sm text-muted-foreground">Cargando...</p>
+                  </div>
+                </div>
+              ) : isAuthenticated ? (
+                <Navigate to="/dashboard" replace />
+              ) : (
+                <LoginPage />
+              )
             } 
           />
 
@@ -114,6 +137,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <SettingsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/backoffice"
+            element={
+              <ProtectedRoute>
+                <BackofficePage />
               </ProtectedRoute>
             }
           />

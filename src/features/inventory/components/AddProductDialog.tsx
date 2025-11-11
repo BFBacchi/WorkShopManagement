@@ -215,7 +215,7 @@ export function AddProductDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="module-inventory">
+        <Button className="bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white font-medium">
           <Plus className="h-4 w-4 mr-2" />
           Agregar Producto
         </Button>
@@ -461,7 +461,7 @@ export function AddProductDialog() {
             </Button>
             <Button
               type="submit"
-              className="module-inventory"
+              className="bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white font-medium"
               disabled={loading || uploadingImage}
             >
               {uploadingImage ? 'Subiendo imagen...' : loading ? 'Agregando...' : 'Agregar Producto'}

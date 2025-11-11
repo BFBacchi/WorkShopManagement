@@ -58,11 +58,11 @@ export function ReceiptDialog({ open, onOpenChange, sale }: ReceiptDialogProps) 
   const handlePrint = () => {
     if (!receiptRef.current) return;
     
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-
-    const printContent = receiptRef.current.innerHTML;
-    printWindow.document.write(`
+    // Clone the element to avoid modifying the original
+    const clonedElement = receiptRef.current.cloneNode(true) as HTMLElement;
+    const printContent = clonedElement.innerHTML;
+    
+    const htmlContent = `
       <!DOCTYPE html>
       <html>
         <head>
@@ -121,13 +121,26 @@ export function ReceiptDialog({ open, onOpenChange, sale }: ReceiptDialogProps) 
           ${printContent}
         </body>
       </html>
-    `);
+    `;
+
+    // Use a safer method to write content
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    printWindow.document.open('text/html', 'replace');
+    printWindow.document.write(htmlContent);
     printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => {
+    
+    // Use function reference instead of arrow function in setTimeout
+    const printAndClose = () => {
       printWindow.print();
       printWindow.close();
-    }, 250);
+    };
+    
+    printWindow.onload = () => {
+      printWindow.focus();
+      setTimeout(printAndClose, 250);
+    };
   };
 
   return (
