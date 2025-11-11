@@ -104,15 +104,17 @@ export const useAuthStore = create<AuthStore>()(
                 )
               `)
               .eq('id', session.user.id)
-              .single();
+              .maybeSingle();
 
             // Si hay error pero no es porque la tabla no existe, lanzar el error
             if (employeeError) {
               // Si el error es porque no existe la tabla o el registro, usar fallback
-              if (employeeError.code === 'PGRST116' || employeeError.code === '42P01') {
+              // PGRST116 = no rows returned, 42P01 = table doesn't exist, 406 = Not Acceptable (usualmente con .single())
+              if (employeeError.code === 'PGRST116' || employeeError.code === '42P01' || employeeError.code === 'PGRST406') {
                 console.log('Employee table or record not found, using basic auth');
               } else {
-                throw employeeError;
+                console.error('Error fetching employee data:', employeeError);
+                // No lanzar el error, continuar con fallback
               }
             } else if (employee && employee.status === 'active') {
               const branchesData = employee.branches as { id: string; name: string } | { id: string; name: string }[] | null;
@@ -138,8 +140,17 @@ export const useAuthStore = create<AuthStore>()(
             }
           } catch (employeeError: unknown) {
             // Si el error es porque la tabla no existe o el registro no existe, usar fallback
-            const error = employeeError as { code?: string; message?: string };
-            if (error?.code === 'PGRST116' || error?.code === '42P01' || error?.message?.includes('relation') || error?.message?.includes('does not exist')) {
+            const error = employeeError as { code?: string; message?: string; status?: number };
+            // PGRST116 = no rows, 42P01 = table doesn't exist, PGRST406 = Not Acceptable
+            if (
+              error?.code === 'PGRST116' || 
+              error?.code === '42P01' || 
+              error?.code === 'PGRST406' ||
+              error?.status === 406 ||
+              error?.message?.includes('relation') || 
+              error?.message?.includes('does not exist') ||
+              error?.message?.includes('Not Acceptable')
+            ) {
               console.log('Employee table or record not found, using basic auth');
             } else {
               console.error('Error fetching employee data:', employeeError);

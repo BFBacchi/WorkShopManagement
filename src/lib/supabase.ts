@@ -23,8 +23,11 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
   global: {
     headers: {
-      'x-client-info': 'workshop-management@1.0.0',
+      'Accept': 'application/json',
     },
+  },
+  db: {
+    schema: 'public',
   },
 })
 
