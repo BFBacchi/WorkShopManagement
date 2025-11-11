@@ -14,14 +14,17 @@ class NotificationService {
 
   constructor() {
     this.apiKey = import.meta.env.VITE_RESEND_API_KEY || '';
-    if (!this.apiKey) {
-      console.warn('Resend API key not found. Email notifications will be disabled.');
+    if (!this.apiKey && import.meta.env.DEV) {
+      // Solo mostrar warning en desarrollo
+      console.info('Resend API key not found. Email notifications will be disabled.');
     }
   }
 
   async sendEmail(options: EmailOptions): Promise<boolean> {
     if (!this.apiKey) {
-      console.warn('Cannot send email: Resend API key not configured');
+      if (import.meta.env.DEV) {
+        console.info('Cannot send email: Resend API key not configured');
+      }
       return false;
     }
 

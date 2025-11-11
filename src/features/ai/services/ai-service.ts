@@ -39,8 +39,9 @@ export class AIService {
 
   constructor() {
     this.apiKey = import.meta.env.VITE_OPENAI_API_KEY || '';
-    if (!this.apiKey) {
-      console.warn('OpenAI API key not found. AI features will be limited.');
+    if (!this.apiKey && import.meta.env.DEV) {
+      // Solo mostrar warning en desarrollo
+      console.info('OpenAI API key not found. AI features will be limited.');
     }
   }
 
