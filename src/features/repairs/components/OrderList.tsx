@@ -7,6 +7,7 @@ import { Search, Filter, Smartphone, Clock, User } from 'lucide-react';
 import { RepairOrder, STATUS_LABELS, PRIORITY_LABELS, RepairStatus } from '../types';
 import { formatDateShort, formatCurrency, getStatusColor, getPriorityColor } from '../utils/order-utils';
 import { useRepairsStore } from '../stores/repairs-store';
+import { RepairTicket } from './RepairTicket';
 import {
   Select,
   SelectContent,
@@ -164,11 +165,16 @@ export function OrderList({ onOrderClick }: OrderListProps) {
                     <Clock className="w-3 h-3" />
                     <span>{formatDateShort(order.created_at)}</span>
                   </div>
-                  {order.estimated_cost && (
-                    <span className="font-medium">
-                      {formatCurrency(order.estimated_cost)}
-                    </span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {order.estimated_cost && (
+                      <span className="font-medium">
+                        {formatCurrency(order.estimated_cost)}
+                      </span>
+                    )}
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <RepairTicket order={order} size="sm" />
+                    </div>
+                  </div>
                 </div>
               </div>
             </Card>

@@ -25,6 +25,7 @@ import { formatDate, formatCurrency, getStatusColor, getPriorityColor } from '..
 import { useRepairsStore } from '../stores/repairs-store';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth-store';
+import { RepairTicket } from './RepairTicket';
 import {
   Select,
   SelectContent,
@@ -169,6 +170,7 @@ export function OrderDetail({ order, onBack }: OrderDetailProps) {
             Creado: {formatDate(order.created_at)}
           </p>
         </div>
+        <RepairTicket order={order} />
       </div>
 
       {/* Quick Actions */}
