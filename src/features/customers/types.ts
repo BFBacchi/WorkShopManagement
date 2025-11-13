@@ -8,6 +8,8 @@ export interface Customer {
   email?: string;
   address?: string;
   loyalty_points?: number;
+  rating?: number; // 1-5 rating
+  status?: 'active' | 'inactive'; // Customer status
   total_spent?: number;
   total_orders?: number;
   last_visit?: string;

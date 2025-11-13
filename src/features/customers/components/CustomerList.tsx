@@ -22,9 +22,17 @@ import {
 import { useCustomersStore } from '../stores/customers-store';
 import { Customer } from '../types';
 import { formatCurrency } from '@/features/pos/utils/pos-utils';
-import { Search, User, Phone, Mail, MapPin, Star, Loader2, Eye } from 'lucide-react';
+import { Search, User, Phone, Mail, MapPin, Star, Loader2, Eye, Pencil, Trash2, MoreVertical } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { EditCustomerDialog } from './EditCustomerDialog';
+import { DeleteCustomerDialog } from './DeleteCustomerDialog';
 
 export function CustomerList() {
   const navigate = useNavigate();
@@ -38,6 +46,9 @@ export function CustomerList() {
     setFilterStatus,
     getFilteredCustomers,
   } = useCustomersStore();
+
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [deletingCustomer, setDeletingCustomer] = useState<Customer | null>(null);
 
   useEffect(() => {
     fetchCustomers();
@@ -166,14 +177,36 @@ export function CustomerList() {
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleViewCustomer(customer._id)}
-                      >
-                        <Eye className="h-4 w-4 mr-2" />
-                        Ver
-                      </Button>
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleViewCustomer(customer._id)}
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          Ver
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setEditingCustomer(customer)}>
+                              <Pencil className="h-4 w-4 mr-2" />
+                              Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => setDeletingCustomer(customer)}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Eliminar
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -208,6 +241,20 @@ export function CustomerList() {
           </div>
         )}
       </CardContent>
+
+      {editingCustomer && (
+        <EditCustomerDialog
+          customer={editingCustomer}
+          open={!!editingCustomer}
+          onOpenChange={(open) => !open && setEditingCustomer(null)}
+        />
+      )}
+
+      <DeleteCustomerDialog
+        customer={deletingCustomer}
+        open={!!deletingCustomer}
+        onOpenChange={(open) => !open && setDeletingCustomer(null)}
+      />
     </Card>
   );
 }
