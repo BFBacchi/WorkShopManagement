@@ -38,3 +38,14 @@ export interface MaintenanceReminder {
   created_at: string;
 }
 
+export interface CustomerAction {
+  id: string;
+  customer_id: string;
+  action_type: 'note' | 'call' | 'visit' | 'email' | 'task' | 'other';
+  title: string;
+  description: string;
+  action_date: string;
+  created_at: string;
+  updated_at?: string;
+}
+

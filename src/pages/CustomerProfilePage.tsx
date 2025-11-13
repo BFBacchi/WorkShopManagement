@@ -11,6 +11,7 @@ import { Loader2 } from 'lucide-react';
 import { CustomerHistory } from '@/features/customers/types';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { CustomerActionsList } from '@/features/customers/components/CustomerActionsList';
 
 export default function CustomerProfilePage() {
   const { id } = useParams<{ id: string }>();
@@ -179,58 +180,71 @@ export default function CustomerProfilePage() {
             </CardContent>
           </Card>
 
-          {/* History Tabs */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Historial</CardTitle>
-              <CardDescription>Historial completo de interacciones con el cliente</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {loadingHistory ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                </div>
-              ) : customerHistory.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-muted-foreground">No hay historial disponible</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {customerHistory.map((item: CustomerHistory) => (
-                    <div
-                      key={`${item.type}-${item.id}`}
-                      className="flex items-center gap-4 p-4 rounded-lg border bg-card"
-                    >
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        {getHistoryIcon(item.type)}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <p className="font-semibold">{item.description}</p>
-                          {getStatusBadge(item.status)}
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          {new Date(item.date).toLocaleDateString('es-ES', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </p>
-                      </div>
-                      {item.amount && (
-                        <div className="text-right">
-                          <p className="font-semibold">{formatCurrency(item.amount)}</p>
-                        </div>
-                      )}
+          {/* Tabs for History and Actions */}
+          <Tabs defaultValue="history" className="space-y-6">
+            <TabsList>
+              <TabsTrigger value="history">Historial</TabsTrigger>
+              <TabsTrigger value="actions">Acciones</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="history">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Historial</CardTitle>
+                  <CardDescription>Historial completo de interacciones con el cliente</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {loadingHistory ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                     </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                  ) : customerHistory.length === 0 ? (
+                    <div className="text-center py-12">
+                      <p className="text-muted-foreground">No hay historial disponible</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {customerHistory.map((item: CustomerHistory) => (
+                        <div
+                          key={`${item.type}-${item.id}`}
+                          className="flex items-center gap-4 p-4 rounded-lg border bg-card"
+                        >
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                            {getHistoryIcon(item.type)}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="font-semibold">{item.description}</p>
+                              {getStatusBadge(item.status)}
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              {new Date(item.date).toLocaleDateString('es-ES', {
+                                weekday: 'long',
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </p>
+                          </div>
+                          {item.amount && (
+                            <div className="text-right">
+                              <p className="font-semibold">{formatCurrency(item.amount)}</p>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="actions">
+              {id && <CustomerActionsList customerId={id} />}
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </div>

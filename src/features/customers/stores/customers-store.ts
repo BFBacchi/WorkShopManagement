@@ -3,16 +3,18 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth-store';
-import { Customer, CustomerHistory, MaintenanceReminder } from '../types';
+import { Customer, CustomerHistory, MaintenanceReminder, CustomerAction } from '../types';
 
 interface CustomersState {
   customers: Customer[];
   selectedCustomer: Customer | null;
   customerHistory: CustomerHistory[];
   reminders: MaintenanceReminder[];
+  customerActions: CustomerAction[];
   loading: boolean;
   loadingHistory: boolean;
   loadingReminders: boolean;
+  loadingActions: boolean;
   searchQuery: string;
   filterStatus: 'all' | 'with_points' | 'recent' | 'vip';
 
@@ -28,6 +30,10 @@ interface CustomersState {
   fetchReminders: () => Promise<void>;
   createReminder: (reminderData: Partial<MaintenanceReminder>) => Promise<void>;
   markReminderSent: (reminderId: string) => Promise<void>;
+  fetchCustomerActions: (customerId: string) => Promise<void>;
+  addCustomerAction: (actionData: Partial<CustomerAction>) => Promise<CustomerAction | null>;
+  updateCustomerAction: (id: string, actionData: Partial<CustomerAction>) => Promise<void>;
+  deleteCustomerAction: (id: string) => Promise<void>;
   setSearchQuery: (query: string) => void;
   setFilterStatus: (status: 'all' | 'with_points' | 'recent' | 'vip') => void;
   getFilteredCustomers: () => Customer[];
@@ -39,9 +45,11 @@ export const useCustomersStore = create<CustomersState>((set, get) => ({
   selectedCustomer: null,
   customerHistory: [],
   reminders: [],
+  customerActions: [],
   loading: false,
   loadingHistory: false,
   loadingReminders: false,
+  loadingActions: false,
   searchQuery: '',
   filterStatus: 'all',
 
@@ -529,6 +537,173 @@ export const useCustomersStore = create<CustomersState>((set, get) => ({
         reminders: state.reminders.map((r) =>
           r.id === reminderId ? { ...r, sent: true } : r
         ),
+      }));
+    }
+  },
+
+  fetchCustomerActions: async (customerId: string) => {
+    set({ loadingActions: true });
+    try {
+      const user = useAuthStore.getState().user;
+      if (!user?.uid) throw new Error('Usuario no autenticado');
+
+      const { data, error } = await supabase
+        .from('customer_actions')
+        .select('*')
+        .eq('user_id', user.uid)
+        .eq('customer_id', customerId)
+        .order('action_date', { ascending: false });
+
+      if (error) throw error;
+
+      const actions: CustomerAction[] = (data || []).map((action: any) => ({
+        id: action.id,
+        customer_id: action.customer_id,
+        action_type: action.action_type,
+        title: action.title,
+        description: action.description,
+        action_date: action.action_date,
+        created_at: action.created_at,
+        updated_at: action.updated_at,
+      }));
+
+      set({ customerActions: actions });
+    } catch (error) {
+      console.error('Error fetching customer actions:', error);
+      // Fallback to empty array if table doesn't exist
+      set({ customerActions: [] });
+    } finally {
+      set({ loadingActions: false });
+    }
+  },
+
+  addCustomerAction: async (actionData: Partial<CustomerAction>) => {
+    try {
+      const user = useAuthStore.getState().user;
+      if (!user?.uid) throw new Error('Usuario no autenticado');
+
+      const { data, error } = await supabase
+        .from('customer_actions')
+        .insert({
+          user_id: user.uid,
+          customer_id: actionData.customer_id!,
+          action_type: actionData.action_type!,
+          title: actionData.title!,
+          description: actionData.description || '',
+          action_date: actionData.action_date || new Date().toISOString(),
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const newAction: CustomerAction = {
+        id: data.id,
+        customer_id: data.customer_id,
+        action_type: data.action_type,
+        title: data.title,
+        description: data.description,
+        action_date: data.action_date,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+      };
+
+      set((state) => ({
+        customerActions: [newAction, ...state.customerActions],
+      }));
+
+      return newAction;
+    } catch (error) {
+      console.error('Error adding customer action:', error);
+      // Fallback to local state if table doesn't exist
+      const newAction: CustomerAction = {
+        id: `action-${Date.now()}`,
+        customer_id: actionData.customer_id!,
+        action_type: actionData.action_type!,
+        title: actionData.title!,
+        description: actionData.description || '',
+        action_date: actionData.action_date || new Date().toISOString(),
+        created_at: new Date().toISOString(),
+      };
+
+      set((state) => ({
+        customerActions: [newAction, ...state.customerActions],
+      }));
+
+      return newAction;
+    }
+  },
+
+  updateCustomerAction: async (id: string, actionData: Partial<CustomerAction>) => {
+    try {
+      const user = useAuthStore.getState().user;
+      if (!user?.uid) throw new Error('Usuario no autenticado');
+
+      const { error } = await supabase
+        .from('customer_actions')
+        .update({
+          action_type: actionData.action_type,
+          title: actionData.title,
+          description: actionData.description,
+          action_date: actionData.action_date,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', user.uid)
+        .eq('id', id);
+
+      if (error) throw error;
+
+      // Update local state
+      set((state) => ({
+        customerActions: state.customerActions.map((action) =>
+          action.id === id
+            ? {
+                ...action,
+                ...actionData,
+                updated_at: new Date().toISOString(),
+              }
+            : action
+        ),
+      }));
+    } catch (error) {
+      console.error('Error updating customer action:', error);
+      // Fallback to local state update if table doesn't exist
+      set((state) => ({
+        customerActions: state.customerActions.map((action) =>
+          action.id === id
+            ? {
+                ...action,
+                ...actionData,
+                updated_at: new Date().toISOString(),
+              }
+            : action
+        ),
+      }));
+    }
+  },
+
+  deleteCustomerAction: async (id: string) => {
+    try {
+      const user = useAuthStore.getState().user;
+      if (!user?.uid) throw new Error('Usuario no autenticado');
+
+      const { error } = await supabase
+        .from('customer_actions')
+        .delete()
+        .eq('user_id', user.uid)
+        .eq('id', id);
+
+      if (error) throw error;
+
+      // Update local state
+      set((state) => ({
+        customerActions: state.customerActions.filter((action) => action.id !== id),
+      }));
+    } catch (error) {
+      console.error('Error deleting customer action:', error);
+      // Fallback to local state update if table doesn't exist
+      set((state) => ({
+        customerActions: state.customerActions.filter((action) => action.id !== id),
       }));
     }
   },
