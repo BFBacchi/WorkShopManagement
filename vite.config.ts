@@ -14,11 +14,11 @@ export default defineConfig(() => ({
   },
   build: {
     // Minimizar el uso de eval() en producción
-    minify: 'esbuild',
+    minify: 'esbuild' as const,
     rollupOptions: {
       output: {
         // Evitar el uso de eval() en el código generado
-        format: 'es',
+        format: 'es' as const,
       },
     },
   },
