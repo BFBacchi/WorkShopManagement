@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => ({
     },
   },
   optimizeDeps: {
-    include: ["qrcode"],
+    include: [],
   },
   build: {
     // Minimizar el uso de eval() en producción

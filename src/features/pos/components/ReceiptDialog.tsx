@@ -1,8 +1,7 @@
-// Receipt dialog with QR code for completed sales
+// Receipt dialog for completed sales
 
-import { useRef, useEffect, useState } from 'react';
+import { useRef } from 'react';
 import { Printer, X } from 'lucide-react';
-import QRCode from 'qrcode';
 import {
   Dialog,
   DialogContent,
@@ -23,33 +22,7 @@ interface ReceiptDialogProps {
 
 export function ReceiptDialog({ open, onOpenChange, sale }: ReceiptDialogProps) {
   const receiptRef = useRef<HTMLDivElement>(null);
-  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
   const { activeReceiptTemplate, businessSettings } = useSettingsStore();
-
-  useEffect(() => {
-    if (sale) {
-      const qrData = JSON.stringify({
-        sale_number: sale.sale_number,
-        total: sale.total,
-        date: sale.sale_date,
-      });
-      
-      QRCode.toDataURL(qrData, {
-        width: 120,
-        margin: 1,
-        color: {
-          dark: '#000000',
-          light: '#FFFFFF',
-        },
-      })
-        .then((url) => {
-          setQrCodeDataUrl(url);
-        })
-        .catch((err) => {
-          console.error('Error generating QR code:', err);
-        });
-    }
-  }, [sale]);
 
   if (!sale) return null;
 
@@ -104,10 +77,6 @@ export function ReceiptDialog({ open, onOpenChange, sale }: ReceiptDialogProps) 
               padding-top: 10px;
               margin-top: 10px;
               font-weight: bold;
-            }
-            .qr-code {
-              text-align: center;
-              margin-top: 15px;
             }
             .receipt-footer {
               text-align: center;
@@ -243,26 +212,6 @@ export function ReceiptDialog({ open, onOpenChange, sale }: ReceiptDialogProps) 
               )}
             </div>
           </div>
-
-          {/* QR Code */}
-          {activeReceiptTemplate?.show_qr_code && (
-            <div className="qr-code text-center mt-6">
-              <div className="flex justify-center mb-2">
-                {qrCodeDataUrl ? (
-                  <img
-                    src={qrCodeDataUrl}
-                    alt="QR Code"
-                    className="w-[120px] h-[120px]"
-                  />
-                ) : (
-                  <div className="w-[120px] h-[120px] bg-gray-200 animate-pulse rounded" />
-                )}
-              </div>
-              <p className="text-xs text-gray-500">
-                Escanea para verificar la venta
-              </p>
-            </div>
-          )}
 
           {/* Footer */}
           {activeReceiptTemplate?.footer_text && (

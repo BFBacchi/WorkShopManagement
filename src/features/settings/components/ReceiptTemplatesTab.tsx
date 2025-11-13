@@ -47,7 +47,6 @@ export function ReceiptTemplatesTab() {
     footer_text: '',
     show_logo: false,
     logo_url: '',
-    show_qr_code: true,
     show_tax_id: false,
     show_business_info: true,
     font_size: 'medium' as 'small' | 'medium' | 'large',
@@ -66,7 +65,6 @@ export function ReceiptTemplatesTab() {
       footer_text: '',
       show_logo: false,
       logo_url: '',
-      show_qr_code: true,
       show_tax_id: false,
       show_business_info: true,
       font_size: 'medium',
@@ -83,7 +81,6 @@ export function ReceiptTemplatesTab() {
       footer_text: template.footer_text,
       show_logo: template.show_logo,
       logo_url: template.logo_url || '',
-      show_qr_code: template.show_qr_code,
       show_tax_id: template.show_tax_id,
       show_business_info: template.show_business_info,
       font_size: template.font_size,
@@ -244,17 +241,6 @@ export function ReceiptTemplatesTab() {
                         checked={formData.show_logo}
                         onCheckedChange={(checked) =>
                           setFormData({ ...formData, show_logo: checked })
-                        }
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="show_qr_code">Mostrar Código QR</Label>
-                      <Switch
-                        id="show_qr_code"
-                        checked={formData.show_qr_code}
-                        onCheckedChange={(checked) =>
-                          setFormData({ ...formData, show_qr_code: checked })
                         }
                       />
                     </div>

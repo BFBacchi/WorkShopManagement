@@ -20,7 +20,6 @@ export interface ReceiptTemplate {
   footer_text: string;
   show_logo: boolean;
   logo_url?: string;
-  show_qr_code: boolean;
   show_tax_id: boolean;
   show_business_info: boolean;
   font_size: 'small' | 'medium' | 'large';
