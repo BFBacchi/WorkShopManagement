@@ -87,7 +87,7 @@ export const useCustomersStore = create<CustomersState>((set, get) => ({
             .eq('customer_id', customer.id)
             .order('created_at', { ascending: false })
             .limit(1)
-            .single();
+            .maybeSingle();
 
           const { data: lastSale } = await supabase
             .from('sales')
@@ -96,7 +96,7 @@ export const useCustomersStore = create<CustomersState>((set, get) => ({
             .or(`customer_phone.eq.${customer.phone},customer_name.ilike.%${customer.name}%`)
             .order('sale_date', { ascending: false })
             .limit(1)
-            .single();
+            .maybeSingle();
 
           let lastVisit: string | undefined;
           if (lastRepair?.created_at && lastSale?.sale_date) {

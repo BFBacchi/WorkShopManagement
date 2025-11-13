@@ -5,6 +5,7 @@ import { Pencil, X } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -241,6 +242,9 @@ export function EditProductDialog({ product, open: controlledOpen, onOpenChange 
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Editar Producto</DialogTitle>
+          <DialogDescription>
+            Modifica la información del producto. Los campos marcados con * son obligatorios.
+          </DialogDescription>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">

@@ -5,6 +5,7 @@ import { Plus, X } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -224,6 +225,9 @@ export function AddProductDialog() {
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Agregar Nuevo Producto</DialogTitle>
+          <DialogDescription>
+            Completa el formulario para agregar un nuevo producto al inventario. Los campos marcados con * son obligatorios.
+          </DialogDescription>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">

@@ -89,11 +89,11 @@ export const useSettingsStore = create<SettingsState>()(
         .from('business_settings')
         .select('*')
         .eq('user_id', user.uid)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') {
-        // PGRST116 = no rows returned, which is OK for first time
-        console.warn('Business settings table may not exist yet:', error);
+      if (error) {
+        // Log error but continue with defaults
+        console.warn('Error fetching business settings:', error);
         set({ businessSettings: defaultBusinessSettings });
         return;
       }

@@ -27,7 +27,7 @@ interface AuthStore {
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
   initializeAuth: () => Promise<void>;
-  refreshUserData: () => Promise<void>;
+  refreshUserData: (retries?: number) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthStore>()(
@@ -230,7 +230,6 @@ export const useAuthStore = create<AuthStore>()(
                 break;
               
               case 'SIGNED_OUT':
-              case 'USER_DELETED':
                 set({ isAuthenticated: false, user: null, isLoading: false });
                 break;
               
