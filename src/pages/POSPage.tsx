@@ -1,8 +1,9 @@
 // Point of Sale page - Touch-optimized sales interface
 
 import { useEffect } from 'react';
-import { ShoppingBag, Package } from 'lucide-react';
+import { ShoppingBag, Package, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 import { usePOSStore } from '@/features/pos/stores/pos-store';
 import { ProductCatalog } from '@/features/pos/components/ProductCatalog';
 import { ShoppingCart } from '@/features/pos/components/ShoppingCart';
@@ -11,6 +12,7 @@ import { CashRegisterClosure } from '@/features/pos/components/CashRegisterClosu
 import { ThemeSelector } from '@/components/ThemeSelector';
 
 export default function POSPage() {
+  const navigate = useNavigate();
   const { fetchProducts, products, cart } = usePOSStore();
   
   useEffect(() => {
@@ -23,6 +25,14 @@ export default function POSPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => navigate('/dashboard')}
+              className="mr-2"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
             <div className="h-12 w-12 rounded-xl bg-pos-green/10 flex items-center justify-center">
               <ShoppingBag className="h-6 w-6 text-pos-green" />
             </div>

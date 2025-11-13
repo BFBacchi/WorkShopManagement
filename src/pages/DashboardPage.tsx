@@ -29,6 +29,7 @@ interface DashboardStats {
   totalOrders: number;
   todaySales: number;
   lowStockCount: number;
+  totalProducts: number;
   pendingOrders: number;
   totalCustomers: number;
   recentActivity: Array<{
@@ -44,13 +45,14 @@ export default function DashboardPage() {
   const navigate = useNavigate();
   const { orders } = useRepairsStore();
   const { sales, fetchSales } = usePOSStore();
-  const { getLowStockProducts, getOutOfStockProducts, fetchProducts } = useInventoryStore();
+  const { products, getLowStockProducts, getOutOfStockProducts, fetchProducts } = useInventoryStore();
   const { customers, fetchCustomers } = useCustomersStore();
   
   const [stats, setStats] = useState<DashboardStats>({
     totalOrders: 0,
     todaySales: 0,
     lowStockCount: 0,
+    totalProducts: 0,
     pendingOrders: 0,
     totalCustomers: 0,
     recentActivity: [],
@@ -69,7 +71,7 @@ export default function DashboardPage() {
       updateStats();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orders.length, sales.length, customers.length, user?.uid]);
+  }, [orders.length, sales.length, customers.length, products.length, user?.uid]);
 
   const loadDashboardData = async () => {
     if (!user?.uid) return;
@@ -243,11 +245,15 @@ export default function DashboardPage() {
     const outOfStockProducts = getOutOfStockProducts();
     const lowStockCount = lowStockProducts.length + outOfStockProducts.length;
 
+    // Calculate total products
+    const totalProducts = products.filter(p => p.status === 'active').length;
+
     setStats((prev) => ({
       ...prev,
       totalOrders: orders.length,
       todaySales,
       lowStockCount,
+      totalProducts,
       pendingOrders,
       totalCustomers: customers.length,
       recentActivity: prev.recentActivity, // Keep existing activity
@@ -421,9 +427,9 @@ export default function DashboardPage() {
             <Card>
               <CardContent className="pt-6">
                 <div className="text-2xl font-bold text-[hsl(var(--inventory))]">
-                  {stats.lowStockCount}
+                  {stats.totalProducts}
                 </div>
-                <p className="text-sm text-muted-foreground">Stock bajo</p>
+                <p className="text-sm text-muted-foreground">Artículos en inventario</p>
               </CardContent>
             </Card>
             <Card>
