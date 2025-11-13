@@ -1,7 +1,7 @@
 // Inventory catalog with advanced filters
 
 import { useEffect, useMemo, useState } from 'react';
-import { Search, Package, AlertTriangle, Filter, X, TrendingDown, TrendingUp, MoreVertical, Pencil, Trash2 } from 'lucide-react';
+import { Search, Package, AlertTriangle, Filter, X, TrendingDown, TrendingUp, MoreVertical, Pencil, Trash2, LayoutGrid, List, ChevronDown, ChevronUp } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +19,8 @@ import { formatCurrency } from '../../pos/utils/pos-utils';
 import type { Product, ProductCategory } from '../../pos/types';
 import { EditProductDialog } from './EditProductDialog';
 import { DeleteProductDialog } from './DeleteProductDialog';
+
+type ViewMode = 'cards' | 'list';
 
 export function InventoryCatalog() {
   const {
@@ -39,6 +41,16 @@ export function InventoryCatalog() {
   const categories = getCategories();
   const lowStockProducts = getLowStockProducts();
   const outOfStockProducts = getOutOfStockProducts();
+  
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    const saved = localStorage.getItem('inventory-view-mode');
+    return (saved === 'list' || saved === 'cards') ? saved : 'cards';
+  });
+  const [showFilters, setShowFilters] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem('inventory-view-mode', viewMode);
+  }, [viewMode]);
   
   useEffect(() => {
     fetchProducts();
@@ -115,40 +127,67 @@ export function InventoryCatalog() {
         </div>
       )}
       
-      {/* Advanced Filters */}
-      <Card>
-        <CardContent className="p-4 space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-muted-foreground" />
-              <h3 className="font-semibold">Filtros Avanzados</h3>
-            </div>
+      {/* Search */}
+      <div className="space-y-2">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="Buscar por nombre, SKU, marca o modelo..."
+            value={filters.search}
+            onChange={(e) => setFilters({ search: e.target.value })}
+            className="pl-10"
+          />
+        </div>
+        
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowFilters(!showFilters)}
+          className="w-full justify-between"
+        >
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4" />
+            <span>Filtros Avanzados</span>
             {hasActiveFilters && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={resetFilters}
-                className="h-8"
-              >
-                <X className="h-4 w-4 mr-1" />
-                Limpiar
-              </Button>
+              <Badge variant="secondary" className="ml-2">
+                {Object.values(filters).filter(v => 
+                  v !== '' && v !== 'all' && v !== undefined
+                ).length}
+              </Badge>
             )}
           </div>
-          
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder="Buscar por nombre, SKU, marca o modelo..."
-              value={filters.search}
-              onChange={(e) => setFilters({ search: e.target.value })}
-              className="pl-10"
-            />
-          </div>
-          
-          {/* Filter Grid */}
+          {showFilters ? (
+            <ChevronUp className="h-4 w-4" />
+          ) : (
+            <ChevronDown className="h-4 w-4" />
+          )}
+        </Button>
+      </div>
+      
+      {/* Advanced Filters */}
+      {showFilters && (
+        <Card>
+          <CardContent className="p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-muted-foreground" />
+                <h3 className="font-semibold">Filtros Avanzados</h3>
+              </div>
+              {hasActiveFilters && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={resetFilters}
+                  className="h-8"
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  Limpiar
+                </Button>
+              )}
+            </div>
+            
+            {/* Filter Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Category Filter */}
             <div className="space-y-2">
@@ -259,20 +298,43 @@ export function InventoryCatalog() {
           </div>
         </CardContent>
       </Card>
+      )}
       
-      {/* Results Count */}
+      {/* Results Count and View Toggle */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
           Mostrando {filteredProducts.length} de {products.length} productos
         </p>
-        {hasActiveFilters && (
-          <Badge variant="secondary">
-            Filtros activos
-          </Badge>
-        )}
+        <div className="flex items-center gap-2">
+          {hasActiveFilters && (
+            <Badge variant="secondary">
+              Filtros activos
+            </Badge>
+          )}
+          <div className="flex gap-1 border rounded-lg p-1">
+            <Button
+              variant={viewMode === 'cards' ? 'default' : 'ghost'}
+              size="icon"
+              onClick={() => setViewMode('cards')}
+              className="h-8 w-8"
+              title="Vista de tarjetas"
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'ghost'}
+              size="icon"
+              onClick={() => setViewMode('list')}
+              className="h-8 w-8"
+              title="Vista de lista"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       </div>
       
-      {/* Products Grid */}
+      {/* Products Display */}
       {filteredProducts.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
@@ -287,10 +349,16 @@ export function InventoryCatalog() {
             </p>
           </CardContent>
         </Card>
-      ) : (
+      ) : viewMode === 'cards' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredProducts.map(product => (
             <ProductCard key={product._id} product={product} />
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {filteredProducts.map(product => (
+            <ProductListItem key={product._id} product={product} />
           ))}
         </div>
       )}
@@ -425,6 +493,144 @@ function ProductCard({ product }: { product: Product }) {
                   {product.status === 'inactive' ? 'Inactivo' : 'Descontinuado'}
                 </Badge>
               )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      
+      {/* Dialogs */}
+      {showEditDialog && (
+        <EditProductDialog 
+          product={product} 
+          open={showEditDialog}
+          onOpenChange={setShowEditDialog}
+        />
+      )}
+      {showDeleteDialog && (
+        <DeleteProductDialog 
+          product={product}
+          open={showDeleteDialog}
+          onOpenChange={setShowDeleteDialog}
+        />
+      )}
+    </>
+  );
+}
+
+function ProductListItem({ product }: { product: Product }) {
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  
+  const isLowStock = product.stock > 0 && product.stock <= product.min_stock;
+  const isOutOfStock = product.stock === 0;
+  
+  const getStockBadge = () => {
+    if (isOutOfStock) {
+      return <Badge variant="destructive">Sin Stock</Badge>;
+    }
+    if (isLowStock) {
+      return <Badge variant="outline" className="border-orange-500 text-orange-700">Stock Bajo</Badge>;
+    }
+    return <Badge variant="outline" className="border-green-500 text-green-700">En Stock</Badge>;
+  };
+  
+  const getCategoryColor = (category: ProductCategory) => {
+    switch (category) {
+      case 'device':
+        return 'bg-blue-100 text-blue-800';
+      case 'accessory':
+        return 'bg-purple-100 text-purple-800';
+      case 'part':
+        return 'bg-orange-100 text-orange-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+  
+  return (
+    <>
+      <Card className="hover:shadow-md transition-shadow">
+        <CardContent className="p-4">
+          <div className="flex gap-4">
+            {/* Image */}
+            <div className="w-20 h-20 bg-muted rounded-lg flex-shrink-0 overflow-hidden">
+              {product.image_url ? (
+                <img 
+                  src={product.image_url} 
+                  alt={product.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <Package className="h-8 w-8 text-muted-foreground/30" />
+                </div>
+              )}
+            </div>
+            
+            {/* Details */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-semibold text-base truncate">{product.name}</h3>
+                    <Badge className={`${getCategoryColor(product.category)} text-xs`}>
+                      {product.category === 'device' ? 'Equipo' : 
+                       product.category === 'accessory' ? 'Accesorio' : 'Refacción'}
+                    </Badge>
+                    {getStockBadge()}
+                  </div>
+                  {product.brand && (
+                    <p className="text-sm text-muted-foreground mb-1">{product.brand}</p>
+                  )}
+                  <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+                    {product.sku && (
+                      <span className="font-mono">SKU: {product.sku}</span>
+                    )}
+                    {product.model && (
+                      <span>Modelo: {product.model}</span>
+                    )}
+                    {product.min_stock > 0 && (
+                      <span>Mín: {product.min_stock}</span>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-4 flex-shrink-0">
+                  <div className="text-right">
+                    <div className="text-lg font-semibold mb-1">
+                      {formatCurrency(product.price)}
+                    </div>
+                    <div className={`text-sm font-medium ${
+                      isOutOfStock ? 'text-red-600' : 
+                      isLowStock ? 'text-orange-600' : 
+                      'text-green-600'
+                    }`}>
+                      Stock: {product.stock}
+                    </div>
+                  </div>
+                  
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => setShowEditDialog(true)}>
+                        <Pencil className="h-4 w-4 mr-2" />
+                        Editar
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => setShowDeleteDialog(true)}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Eliminar
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
             </div>
           </div>
         </CardContent>
