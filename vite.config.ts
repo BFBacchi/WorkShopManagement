@@ -23,9 +23,10 @@ export default defineConfig(() => ({
     },
   },
   // Configuración del servidor de desarrollo
-  // NOTA: No aplicamos CSP en desarrollo porque Vite HMR requiere eval()
-  // La CSP solo se aplica en producción a través de vercel.json
+  // CSP con 'unsafe-eval' para permitir Vite HMR (Hot Module Replacement)
   server: {
-    headers: {},
+    headers: {
+      'Content-Security-Policy': "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https: http://localhost:* ws://localhost:* wss://localhost:* chrome-extension:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https: http://localhost:* data: blob: chrome-extension:; style-src 'self' 'unsafe-inline' https: data: chrome-extension:; img-src 'self' data: blob: https: chrome-extension:; connect-src 'self' https: http://localhost:* ws://localhost:* wss://localhost:* data: chrome-extension:; font-src 'self' data: https: chrome-extension:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; worker-src 'self' blob:;"
+    },
   },
 }));
