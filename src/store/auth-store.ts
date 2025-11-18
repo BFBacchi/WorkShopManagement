@@ -215,27 +215,38 @@ export const useAuthStore = create<AuthStore>()(
           async (event, session) => {
             console.log('Auth state changed:', event, session?.user?.id);
             
-            switch (event) {
-              case 'SIGNED_IN':
-              case 'TOKEN_REFRESHED':
-              case 'USER_UPDATED':
-                if (session?.user) {
-                  try {
-                    await get().refreshUserData();
-                  } catch (error) {
-                    console.error('Error refreshing user data on auth change:', error);
-                    set({ isAuthenticated: false, user: null, isLoading: false });
+            try {
+              switch (event) {
+                case 'SIGNED_IN':
+                case 'TOKEN_REFRESHED':
+                case 'USER_UPDATED':
+                  if (session?.user) {
+                    try {
+                      await get().refreshUserData();
+                    } catch (error: any) {
+                      console.error('Error refreshing user data on auth change:', error);
+                      // No cerrar sesión automáticamente, solo loggear el error
+                      // La sesión sigue siendo válida aunque haya error al obtener datos del empleado
+                      if (error?.message?.includes('session') || error?.message?.includes('token')) {
+                        // Solo cerrar sesión si es un error de sesión/token
+                        set({ isAuthenticated: false, user: null, isLoading: false });
+                      }
+                    }
                   }
-                }
-                break;
-              
-              case 'SIGNED_OUT':
-                set({ isAuthenticated: false, user: null, isLoading: false });
-                break;
-              
-              case 'PASSWORD_RECOVERY':
-                // No action needed
-                break;
+                  break;
+                
+                case 'SIGNED_OUT':
+                  set({ isAuthenticated: false, user: null, isLoading: false });
+                  break;
+                
+                case 'PASSWORD_RECOVERY':
+                  // No action needed
+                  break;
+                  
+              }
+            } catch (error) {
+              console.error('Error in auth state change handler:', error);
+              // No hacer nada, solo loggear el error para no romper la aplicación
             }
           }
         );
@@ -250,40 +261,52 @@ export const useAuthStore = create<AuthStore>()(
         }
 
         // Verificación periódica de sesión cada 5 minutos
+        // Nota: Supabase maneja el refresh automático de tokens, así que solo verificamos si la sesión sigue activa
         sessionCheckInterval = setInterval(async () => {
           try {
+            // Solo verificar si el usuario está autenticado según nuestro estado
+            if (!get().isAuthenticated) {
+              return; // No hacer nada si ya no está autenticado
+            }
+
             const { data: { session }, error } = await supabase.auth.getSession();
             
             if (error) {
-              console.error('Error checking session:', error);
-              // Si hay error, intentar refrescar
-              try {
-                const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
-                if (refreshError || !refreshedSession) {
-                  console.warn('Could not refresh session, logging out');
-                  set({ isAuthenticated: false, user: null });
-                } else {
-                  // Sesión refrescada exitosamente
-                  await get().refreshUserData();
+              console.error('Error checking session in interval:', error);
+              // Intentar refrescar solo si es un error de token/sesión
+              if (error.message?.includes('token') || error.message?.includes('session') || error.message?.includes('JWT')) {
+                try {
+                  const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
+                  if (refreshError || !refreshedSession) {
+                    console.warn('Could not refresh session in interval, logging out');
+                    set({ isAuthenticated: false, user: null });
+                  } else {
+                    // Sesión refrescada exitosamente, pero no refrescar datos del usuario para evitar loops
+                    console.log('Session refreshed successfully in interval');
+                  }
+                } catch (refreshErr) {
+                  console.error('Error refreshing session in interval:', refreshErr);
+                  // Solo cerrar sesión si es un error crítico
+                  if (refreshErr instanceof Error && (
+                    refreshErr.message?.includes('token') || 
+                    refreshErr.message?.includes('expired')
+                  )) {
+                    set({ isAuthenticated: false, user: null });
+                  }
                 }
-              } catch (refreshErr) {
-                console.error('Error refreshing session:', refreshErr);
-                set({ isAuthenticated: false, user: null });
               }
               return;
             }
 
+            // Si no hay sesión pero nuestro estado dice que está autenticado, cerrar sesión
             if (!session && get().isAuthenticated) {
-              // Sesión expirada pero el estado dice que está autenticado
-              console.warn('Session expired, logging out');
+              console.warn('Session expired in interval, logging out');
               set({ isAuthenticated: false, user: null });
-            } else if (session && !get().isAuthenticated) {
-              // Hay sesión pero el estado dice que no está autenticado
-              console.log('Session found, refreshing user data');
-              await get().refreshUserData();
             }
+            // No hacer nada si hay sesión y está autenticado - Supabase maneja el refresh automático
           } catch (error) {
             console.error('Error in periodic session check:', error);
+            // No cerrar sesión por errores inesperados, solo loggear
           }
         }, 5 * 60 * 1000); // Cada 5 minutos
       },

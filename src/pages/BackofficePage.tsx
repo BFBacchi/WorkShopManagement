@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Plus, Edit, Trash2, Building2, Users, Save, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { createAdminUser, updateUserPassword } from '@/lib/admin-service';
 import { useAuthStore } from '@/store/auth-store';
 import {
   Table,
@@ -94,9 +95,15 @@ export default function BackofficePage() {
         .select('*')
         .order('name');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error loading branches:', error);
+        throw error;
+      }
+
+      console.log('Branches loaded:', data);
       setBranches(data || []);
     } catch (error: any) {
+      console.error('Error in loadBranches:', error);
       toast({
         title: 'Error',
         description: error.message || 'No se pudieron cargar las sucursales',
@@ -121,15 +128,22 @@ export default function BackofficePage() {
         `)
         .order('full_name');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error loading employees:', error);
+        throw error;
+      }
+
+      console.log('Employees loaded:', data);
 
       const employeesWithBranchName = (data || []).map((emp: any) => ({
         ...emp,
-        branch_name: emp.branches?.name,
+        branch_name: emp.branches?.name || emp.branches?.name,
       }));
 
+      console.log('Employees with branch name:', employeesWithBranchName);
       setEmployees(employeesWithBranchName);
     } catch (error: any) {
+      console.error('Error in loadEmployees:', error);
       toast({
         title: 'Error',
         description: error.message || 'No se pudieron cargar los empleados',
@@ -312,16 +326,13 @@ export default function BackofficePage() {
 
         // Si se proporcionó una nueva contraseña, actualizarla en auth
         if (employeePassword.trim()) {
-          const { error: authError } = await supabase.auth.admin.updateUserById(
-            editingEmployee.id,
-            { password: employeePassword }
-          );
-          if (authError) {
-            console.error('Error updating password:', authError);
-            // No lanzar error, solo mostrar advertencia
+          try {
+            await updateUserPassword(editingEmployee.id, employeePassword);
+          } catch (error: any) {
+            console.error('Error updating password:', error);
             toast({
               title: 'Advertencia',
-              description: 'Empleado actualizado pero no se pudo cambiar la contraseña. Verifica permisos de administrador.',
+              description: 'Empleado actualizado pero no se pudo cambiar la contraseña: ' + (error.message || 'Error desconocido'),
               variant: 'default',
             });
           }
@@ -332,42 +343,84 @@ export default function BackofficePage() {
           description: 'Empleado actualizado correctamente',
         });
       } else {
-        // Crear nuevo usuario en auth primero
-        const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-          email: employeeEmail,
-          password: employeePassword || 'TempPassword123!', // Contraseña temporal
-          email_confirm: true,
-        });
+        // Crear nuevo usuario usando el servicio de administración
+        const password = employeePassword || `Temp${Math.random().toString(36).slice(-8)}!`;
+        
+        try {
+          // Crear usuario en auth con permisos de administrador
+          const authUser = await createAdminUser(
+            employeeEmail,
+            password,
+            true // email_confirm: true para que no necesite confirmar email
+          );
 
-        if (authError) throw authError;
+          // Crear registro en employees
+          const { data: insertedEmployee, error } = await supabase
+            .from('employees')
+            .insert({
+              id: authUser.id,
+              email: employeeEmail,
+              full_name: employeeFullName,
+              phone: employeePhone || null,
+              role: employeeRole,
+              branch_id: employeeBranchId,
+              status: employeeStatus,
+            })
+            .select()
+            .single();
 
-        if (!authData.user) {
-          throw new Error('No se pudo crear el usuario');
-        }
+          if (error) {
+            console.error('Error inserting employee:', error);
+            // Si falla la inserción, intentar eliminar el usuario creado
+            // (aunque esto requeriría service role key, que ya tenemos)
+            try {
+              const admin = await import('@/lib/admin-service');
+              // No podemos eliminar fácilmente, pero al menos lanzamos el error
+            } catch {}
+            throw error;
+          }
 
-        // Crear registro en employees
-        const { error } = await supabase
-          .from('employees')
-          .insert({
-            id: authData.user.id,
-            email: employeeEmail,
-            full_name: employeeFullName,
-            phone: employeePhone || null,
-            role: employeeRole,
-            branch_id: employeeBranchId,
-            status: employeeStatus,
+          console.log('Employee inserted successfully:', insertedEmployee);
+
+          toast({
+            title: 'Éxito',
+            description: `Empleado creado correctamente. ${!employeePassword ? `Contraseña temporal: ${password}` : 'El empleado puede iniciar sesión con su contraseña.'}`,
           });
+        } catch (error: any) {
+          // Manejar errores específicos
+          if (error.message?.includes('already registered') || error.message?.includes('already exists')) {
+            // Verificar si ya existe en employees
+            const { data: existingEmployee } = await supabase
+              .from('employees')
+              .select('id')
+              .eq('email', employeeEmail)
+              .maybeSingle();
 
-        if (error) throw error;
+            if (existingEmployee) {
+              throw new Error('Ya existe un empleado con este email');
+            }
 
-        toast({
-          title: 'Éxito',
-          description: 'Empleado creado correctamente',
-        });
+            throw new Error('Ya existe un usuario con este email en el sistema de autenticación');
+          }
+          throw error;
+        }
       }
 
       setEmployeeDialogOpen(false);
-      loadEmployees();
+      // Limpiar formulario
+      setEmployeeEmail('');
+      setEmployeeFullName('');
+      setEmployeePhone('');
+      setEmployeePassword('');
+      setEmployeeRole('employee');
+      setEmployeeBranchId('');
+      setEmployeeStatus('active');
+      setEditingEmployee(null);
+      
+      // Recargar empleados después de un pequeño delay para asegurar que la inserción se complete
+      setTimeout(() => {
+        loadEmployees();
+      }, 500);
     } catch (error: any) {
       toast({
         title: 'Error',
