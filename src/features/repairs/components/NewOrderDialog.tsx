@@ -1,12 +1,13 @@
-import { useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Loader2 } from 'lucide-react';
+import { Plus, Loader2, Search, UserPlus } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth-store';
 import { useRepairsStore } from '../stores/repairs-store';
@@ -29,7 +30,14 @@ export function NewOrderDialog({ onOrderCreated }: NewOrderDialogProps) {
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
+  const [customerAddress, setCustomerAddress] = useState('');
   const [existingCustomer, setExistingCustomer] = useState<Customer | null>(null);
+  
+  // Customer list state
+  const [allCustomers, setAllCustomers] = useState<Customer[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [loadingCustomers, setLoadingCustomers] = useState(false);
+  const [showNewCustomerDialog, setShowNewCustomerDialog] = useState(false);
 
   // Device form state
   const [deviceBrand, setDeviceBrand] = useState('');
@@ -40,12 +48,67 @@ export function NewOrderDialog({ onOrderCreated }: NewOrderDialogProps) {
   const [priority, setPriority] = useState<Priority>('medium');
   const [estimatedCost, setEstimatedCost] = useState('');
 
+  // Load customers when dialog opens
+  useEffect(() => {
+    if (open && step === 'customer' && user?.uid) {
+      loadCustomers();
+    }
+  }, [open, step, user?.uid]);
+
+  const loadCustomers = async () => {
+    if (!user?.uid) return;
+    
+    setLoadingCustomers(true);
+    try {
+      const { data, error } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('user_id', user.uid)
+        .order('name', { ascending: true });
+
+      if (error) throw error;
+
+      const customers: Customer[] = (data || []).map((item: any) => ({
+        _uid: item.user_id,
+        _id: item.id,
+        name: item.name,
+        phone: item.phone,
+        email: item.email,
+        address: item.address,
+        created_at: item.created_at,
+      }));
+
+      setAllCustomers(customers);
+    } catch (error) {
+      console.error('Error loading customers:', error);
+      toast({
+        title: 'Error',
+        description: 'No se pudieron cargar los clientes',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadingCustomers(false);
+    }
+  };
+
+  // Filter customers based on search query
+  const filteredCustomers = allCustomers.filter(customer => {
+    const query = searchQuery.toLowerCase();
+    return (
+      customer.name.toLowerCase().includes(query) ||
+      customer.phone.includes(query) ||
+      (customer.email && customer.email.toLowerCase().includes(query))
+    );
+  });
+
   const resetForm = () => {
     setStep('customer');
     setCustomerPhone('');
     setCustomerName('');
     setCustomerEmail('');
+    setCustomerAddress('');
     setExistingCustomer(null);
+    setSearchQuery('');
     setDeviceBrand('');
     setDeviceModel('');
     setDeviceImei('');
@@ -55,30 +118,88 @@ export function NewOrderDialog({ onOrderCreated }: NewOrderDialogProps) {
     setEstimatedCost('');
   };
 
-  const handlePhoneCheck = () => {
-    if (!customerPhone.trim()) {
+  const handleSelectCustomer = (customer: Customer) => {
+    setExistingCustomer(customer);
+    setCustomerName(customer.name);
+    setCustomerPhone(customer.phone);
+    setCustomerEmail(customer.email || '');
+    setCustomerAddress(customer.address || '');
+    setSearchQuery('');
+    setStep('device');
+  };
+
+  const handleCreateNewCustomer = async () => {
+    if (!customerName.trim() || !customerPhone.trim()) {
       toast({
         title: 'Error',
-        description: 'Ingresa un número de teléfono',
-        variant: 'destructive'
+        description: 'Nombre y teléfono son requeridos',
+        variant: 'destructive',
       });
       return;
     }
 
-    const customer = findCustomerByPhone(customerPhone);
-    if (customer) {
-      setExistingCustomer(customer);
-      setCustomerName(customer.name);
-      setCustomerEmail(customer.email || '');
+    if (!user?.uid) {
       toast({
-        title: 'Cliente encontrado',
-        description: `${customer.name} - ${customer.phone}`
+        title: 'Error',
+        description: 'Debes iniciar sesión',
+        variant: 'destructive',
       });
-    } else {
-      setExistingCustomer(null);
+      return;
     }
-    setStep('device');
+
+    setLoading(true);
+    try {
+      const { data: createdCustomerData, error: customerError } = await supabase
+        .from('customers')
+        .insert({
+          user_id: user.uid,
+          name: customerName,
+          phone: customerPhone,
+          email: customerEmail || null,
+          address: customerAddress || null,
+          created_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+      
+      if (customerError) throw customerError;
+      
+      if (!createdCustomerData) {
+        throw new Error('No se pudo recuperar el cliente creado');
+      }
+      
+      const createdCustomer: Customer = {
+        _uid: createdCustomerData.user_id,
+        _id: createdCustomerData.id,
+        name: createdCustomerData.name,
+        phone: createdCustomerData.phone,
+        email: createdCustomerData.email,
+        address: createdCustomerData.address,
+        created_at: createdCustomerData.created_at,
+      };
+      
+      addCustomer(createdCustomer);
+      setAllCustomers([createdCustomer, ...allCustomers]);
+      setExistingCustomer(createdCustomer);
+      setShowNewCustomerDialog(false);
+      setStep('device');
+      
+      toast({
+        title: 'Cliente creado',
+        description: `${createdCustomer.name} ha sido agregado exitosamente`,
+      });
+    } catch (error: any) {
+      console.error('Error creating customer:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'No se pudo crear el cliente',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
   };
+
 
   const handleSubmit = async () => {
     if (!user?.uid) {
@@ -103,48 +224,12 @@ export function NewOrderDialog({ onOrderCreated }: NewOrderDialogProps) {
     try {
       let customerId = existingCustomer?._id;
 
-      // Create new customer if doesn't exist
+      // Use existing customer ID
       if (!existingCustomer) {
-        const newCustomer: Omit<Customer, '_id'> = {
-          _uid: user.uid,
-          name: customerName,
-          phone: customerPhone,
-          email: customerEmail || undefined,
-          created_at: new Date().toISOString()
-        };
-
-        // Create customer
-        const { data: createdCustomerData, error: customerError } = await supabase
-          .from('customers')
-          .insert({
-            user_id: user.uid,
-            name: customerName,
-            phone: customerPhone,
-            email: customerEmail || null,
-            created_at: new Date().toISOString(),
-          })
-          .select()
-          .single();
-        
-        if (customerError) throw customerError;
-        
-        if (!createdCustomerData) {
-          throw new Error('No se pudo recuperar el cliente creado');
-        }
-        
-        const createdCustomer: Customer = {
-          _uid: createdCustomerData.user_id,
-          _id: createdCustomerData.id,
-          name: createdCustomerData.name,
-          phone: createdCustomerData.phone,
-          email: createdCustomerData.email,
-          address: createdCustomerData.address,
-          created_at: createdCustomerData.created_at,
-        };
-        
-        customerId = createdCustomer._id;
-        addCustomer(createdCustomer);
+        throw new Error('Debes seleccionar o crear un cliente');
       }
+      
+      customerId = existingCustomer._id;
 
       // Verify we have a valid customer ID
       if (!customerId) {
@@ -270,55 +355,106 @@ export function NewOrderDialog({ onOrderCreated }: NewOrderDialogProps) {
 
         {step === 'customer' ? (
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="phone">Teléfono *</Label>
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="10 dígitos"
-                value={customerPhone}
-                onChange={(e) => setCustomerPhone(e.target.value)}
-                maxLength={10}
-              />
-            </div>
-
-            {existingCustomer && (
+            {existingCustomer ? (
               <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
                 <p className="text-sm font-medium text-green-800 dark:text-green-300">
-                  ✓ Cliente registrado
+                  ✓ Cliente seleccionado
                 </p>
                 <p className="text-sm text-green-700 dark:text-green-400 mt-1">
-                  {existingCustomer.name}
+                  {existingCustomer.name} - {existingCustomer.phone}
                 </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-2"
+                  onClick={() => {
+                    setExistingCustomer(null);
+                    setCustomerName('');
+                    setCustomerPhone('');
+                    setCustomerEmail('');
+                    setCustomerAddress('');
+                  }}
+                >
+                  Cambiar cliente
+                </Button>
               </div>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="search">Buscar cliente</Label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                    <Input
+                      id="search"
+                      placeholder="Buscar por nombre, teléfono o email..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+
+                {loadingCustomers ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <Label>Seleccionar cliente</Label>
+                      <ScrollArea className="h-[300px] border rounded-md p-2">
+                        {filteredCustomers.length === 0 ? (
+                          <div className="text-center py-8 text-muted-foreground">
+                            <p className="text-sm">No se encontraron clientes</p>
+                            {searchQuery && (
+                              <p className="text-xs mt-1">Intenta con otro término de búsqueda</p>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="space-y-1">
+                            {filteredCustomers.map((customer) => (
+                              <button
+                                key={customer._id}
+                                type="button"
+                                onClick={() => handleSelectCustomer(customer)}
+                                className="w-full text-left p-3 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors border border-transparent hover:border-border"
+                              >
+                                <div className="font-medium">{customer.name}</div>
+                                <div className="text-sm text-muted-foreground">
+                                  {customer.phone}
+                                  {customer.email && ` • ${customer.email}`}
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </ScrollArea>
+                    </div>
+
+                    <div className="flex gap-2 pt-2 border-t">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => setShowNewCustomerDialog(true)}
+                      >
+                        <UserPlus className="w-4 h-4 mr-2" />
+                        Nuevo Cliente
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </>
             )}
 
-            <div className="space-y-2">
-              <Label htmlFor="name">Nombre Completo *</Label>
-              <Input
-                id="name"
-                placeholder="Nombre del cliente"
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                disabled={!!existingCustomer}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="email">Email (opcional)</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="correo@ejemplo.com"
-                value={customerEmail}
-                onChange={(e) => setCustomerEmail(e.target.value)}
-                disabled={!!existingCustomer}
-              />
-            </div>
-
-            <Button onClick={handlePhoneCheck} className="w-full module-repairs">
-              Continuar
-            </Button>
+            {existingCustomer && (
+              <Button
+                onClick={() => setStep('device')}
+                className="w-full module-repairs"
+              >
+                Continuar
+              </Button>
+            )}
           </div>
         ) : (
           <div className="space-y-4">
@@ -422,6 +558,102 @@ export function NewOrderDialog({ onOrderCreated }: NewOrderDialogProps) {
           </div>
         )}
       </DialogContent>
+
+      {/* Dialog for creating new customer */}
+      <Dialog open={showNewCustomerDialog} onOpenChange={setShowNewCustomerDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Nuevo Cliente</DialogTitle>
+            <DialogDescription>
+              Completa la información del cliente. Los campos marcados con * son obligatorios.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-name">
+                Nombre completo <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="new-name"
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                placeholder="Juan Pérez"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="new-phone">
+                Teléfono <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="new-phone"
+                type="tel"
+                value={customerPhone}
+                onChange={(e) => setCustomerPhone(e.target.value)}
+                placeholder="10 dígitos"
+                maxLength={10}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="new-email">Email</Label>
+              <Input
+                id="new-email"
+                type="email"
+                value={customerEmail}
+                onChange={(e) => setCustomerEmail(e.target.value)}
+                placeholder="cliente@ejemplo.com"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="new-address">Dirección</Label>
+              <Textarea
+                id="new-address"
+                value={customerAddress}
+                onChange={(e) => setCustomerAddress(e.target.value)}
+                placeholder="Calle, número, ciudad..."
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setShowNewCustomerDialog(false);
+                setCustomerName('');
+                setCustomerPhone('');
+                setCustomerEmail('');
+                setCustomerAddress('');
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              onClick={handleCreateNewCustomer}
+              disabled={loading}
+              className="module-repairs"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Creando...
+                </>
+              ) : (
+                <>
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Crear Cliente
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }

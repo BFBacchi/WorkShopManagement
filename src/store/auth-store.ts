@@ -78,16 +78,21 @@ export const useAuthStore = create<AuthStore>()(
               await new Promise(resolve => setTimeout(resolve, 1000));
               return get().refreshUserData(retries - 1);
             }
-            set({ user: null, isAuthenticated: false, isLoading: false });
+            // No cerrar sesión automáticamente, solo loggear el error
+            // Mantener el estado actual si existe
+            set({ isLoading: false });
             return;
           }
 
           if (!session?.user) {
-            set({ user: null, isAuthenticated: false, isLoading: false });
+            // Si no hay sesión pero estamos autenticados, mantener el estado actual
+            // No cerrar sesión automáticamente para evitar desconexiones inesperadas
+            set({ isLoading: false });
             return;
           }
 
           // Intentar obtener información del empleado si existe la tabla
+          let employeeData = null;
           try {
             const { data: employee, error: employeeError } = await supabase
               .from('employees')
@@ -106,59 +111,61 @@ export const useAuthStore = create<AuthStore>()(
               .eq('id', session.user.id)
               .maybeSingle();
 
-            // Si hay error pero no es porque la tabla no existe, lanzar el error
+            // Manejar errores de manera más robusta
             if (employeeError) {
-              // Si el error es porque no existe la tabla o el registro, usar fallback
-              // PGRST116 = no rows returned, 42P01 = table doesn't exist, 406 = Not Acceptable (usualmente con .single())
-              if (employeeError.code === 'PGRST116' || employeeError.code === '42P01' || employeeError.code === 'PGRST406') {
-                console.log('Employee table or record not found, using basic auth');
+              // Códigos de error comunes de Supabase/PostgREST
+              const isNotFoundError = 
+                employeeError.code === 'PGRST116' || 
+                employeeError.code === '42P01' || 
+                employeeError.code === 'PGRST406' ||
+                employeeError.status === 406 ||
+                employeeError.message?.includes('relation') || 
+                employeeError.message?.includes('does not exist') ||
+                employeeError.message?.includes('Not Acceptable') ||
+                employeeError.message?.includes('permission denied') ||
+                employeeError.message?.includes('row-level security');
+              
+              if (isNotFoundError) {
+                console.log('Employee record not found or access denied, using basic auth');
               } else {
                 console.error('Error fetching employee data:', employeeError);
-                // No lanzar el error, continuar con fallback
+                // Continuar con fallback en lugar de fallar
               }
-            } else if (employee && employee.status === 'active') {
-              const branchesData = employee.branches as { id: string; name: string } | { id: string; name: string }[] | null;
-              const branchName = Array.isArray(branchesData) 
-                ? branchesData[0]?.name 
-                : branchesData?.name;
-
-              const user: User = {
-                uid: employee.id,
-                email: employee.email,
-                name: employee.full_name,
-                role: employee.role as UserRole,
-                branchId: employee.branch_id,
-                branchName: branchName,
-              };
-
-              set({
-                user,
-                isAuthenticated: true,
-                isLoading: false,
-              });
-              return;
+            } else if (employee) {
+              employeeData = employee;
             }
           } catch (employeeError: unknown) {
-            // Si el error es porque la tabla no existe o el registro no existe, usar fallback
+            // Capturar cualquier error inesperado
             const error = employeeError as { code?: string; message?: string; status?: number };
-            // PGRST116 = no rows, 42P01 = table doesn't exist, PGRST406 = Not Acceptable
-            if (
-              error?.code === 'PGRST116' || 
-              error?.code === '42P01' || 
-              error?.code === 'PGRST406' ||
-              error?.status === 406 ||
-              error?.message?.includes('relation') || 
-              error?.message?.includes('does not exist') ||
-              error?.message?.includes('Not Acceptable')
-            ) {
-              console.log('Employee table or record not found, using basic auth');
-            } else {
-              console.error('Error fetching employee data:', employeeError);
-              // Continuar con fallback en lugar de fallar completamente
-            }
+            console.error('Unexpected error fetching employee data:', error);
+            // Continuar con fallback en lugar de fallar completamente
           }
 
-          // Fallback: usar datos básicos de auth
+          // Si tenemos datos del empleado y está activo, usarlos
+          if (employeeData && employeeData.status === 'active') {
+            const branchesData = employeeData.branches as { id: string; name: string } | { id: string; name: string }[] | null;
+            const branchName = Array.isArray(branchesData) 
+              ? branchesData[0]?.name 
+              : branchesData?.name;
+
+            const user: User = {
+              uid: employeeData.id,
+              email: employeeData.email,
+              name: employeeData.full_name,
+              role: employeeData.role as UserRole,
+              branchId: employeeData.branch_id,
+              branchName: branchName,
+            };
+
+            set({
+              user,
+              isAuthenticated: true,
+              isLoading: false,
+            });
+            return;
+          }
+
+          // Fallback: usar datos básicos de auth (siempre mantener autenticación si hay sesión)
           const user: User = {
             uid: session.user.id,
             email: session.user.email || '',
@@ -170,9 +177,33 @@ export const useAuthStore = create<AuthStore>()(
             isAuthenticated: true,
             isLoading: false,
           });
-        } catch (error) {
+        } catch (error: any) {
           console.error('Error in refreshUserData:', error);
-          set({ user: null, isAuthenticated: false, isLoading: false });
+          // No cerrar sesión automáticamente por errores inesperados
+          // Solo actualizar el estado de loading
+          // Mantener la autenticación si existe una sesión válida
+          try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+              // Si hay sesión válida, mantener autenticación con datos básicos
+              const user: User = {
+                uid: session.user.id,
+                email: session.user.email || '',
+                name: session.user.user_metadata?.name || session.user.email?.split('@')[0],
+              };
+              set({
+                user,
+                isAuthenticated: true,
+                isLoading: false,
+              });
+            } else {
+              // Solo cerrar sesión si realmente no hay sesión
+              set({ user: null, isAuthenticated: false, isLoading: false });
+            }
+          } catch {
+            // Si incluso getSession falla, solo actualizar loading
+            set({ isLoading: false });
+          }
         }
       },
 
@@ -221,17 +252,14 @@ export const useAuthStore = create<AuthStore>()(
                 case 'TOKEN_REFRESHED':
                 case 'USER_UPDATED':
                   if (session?.user) {
-                    try {
-                      await get().refreshUserData();
-                    } catch (error: any) {
+                    // No usar await para evitar bloquear el handler
+                    // Ejecutar refreshUserData de forma asíncrona sin bloquear
+                    get().refreshUserData().catch((error: any) => {
                       console.error('Error refreshing user data on auth change:', error);
                       // No cerrar sesión automáticamente, solo loggear el error
                       // La sesión sigue siendo válida aunque haya error al obtener datos del empleado
-                      if (error?.message?.includes('session') || error?.message?.includes('token')) {
-                        // Solo cerrar sesión si es un error de sesión/token
-                        set({ isAuthenticated: false, user: null, isLoading: false });
-                      }
-                    }
+                      // refreshUserData ya maneja los errores internamente y mantiene la autenticación
+                    });
                   }
                   break;
                 
