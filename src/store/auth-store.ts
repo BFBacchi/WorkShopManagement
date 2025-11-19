@@ -114,11 +114,13 @@ export const useAuthStore = create<AuthStore>()(
             // Manejar errores de manera más robusta
             if (employeeError) {
               // Códigos de error comunes de Supabase/PostgREST
+              // PostgrestError no tiene propiedad 'status', solo 'code' y 'message'
+              const errorAny = employeeError as any;
               const isNotFoundError = 
                 employeeError.code === 'PGRST116' || 
                 employeeError.code === '42P01' || 
                 employeeError.code === 'PGRST406' ||
-                employeeError.status === 406 ||
+                (errorAny.status === 406) ||
                 employeeError.message?.includes('relation') || 
                 employeeError.message?.includes('does not exist') ||
                 employeeError.message?.includes('Not Acceptable') ||
