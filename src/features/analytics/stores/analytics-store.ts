@@ -92,7 +92,6 @@ export const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
       const { data, error } = await supabase
         .from('sales')
         .select('*')
-        .eq('user_id', user.uid)
         .order('sale_date', { ascending: true });
 
       if (error) throw error;
@@ -151,8 +150,7 @@ export const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
 
       const { data, error } = await supabase
         .from('repair_orders')
-        .select('*')
-        .eq('user_id', user.uid);
+        .select('*');
 
       if (error) throw error;
 
@@ -201,7 +199,6 @@ export const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
       const { data, error } = await supabase
         .from('repair_orders')
         .select('*')
-        .eq('user_id', user.uid)
         .eq('status', 'delivered');
 
       if (error) throw error;
@@ -258,7 +255,6 @@ export const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
       const { data: salesData, error: salesError } = await supabase
         .from('sales')
         .select('sale_date, total')
-        .eq('user_id', user.uid)
         .order('sale_date', { ascending: true });
 
       if (salesError) throw salesError;
@@ -266,8 +262,7 @@ export const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
       // Fetch products for expenses (cost * stock movements would be ideal, but we'll use cost as approximation)
       const { data: productsData, error: productsError } = await supabase
         .from('products')
-        .select('cost, stock')
-        .eq('user_id', user.uid);
+        .select('cost, stock');
 
       if (productsError) throw productsError;
 
@@ -320,7 +315,6 @@ export const useAnalyticsStore = create<AnalyticsState>((set, get) => ({
       const { data, error } = await supabase
         .from('sales')
         .select('items')
-        .eq('user_id', user.uid)
         .limit(100);
 
       if (error) throw error;

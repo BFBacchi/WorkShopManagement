@@ -37,7 +37,6 @@ export function AlertsWidget() {
       const { data: products } = await supabase
         .from('products')
         .select('name, stock, min_stock')
-        .eq('user_id', user.uid)
         .eq('status', 'active');
 
       if (products) {
@@ -58,7 +57,6 @@ export function AlertsWidget() {
       const { data: orders } = await supabase
         .from('repair_orders')
         .select('order_number, estimated_delivery, status')
-        .eq('user_id', user.uid)
         .in('status', ['received', 'diagnosed', 'in_repair', 'waiting_parts', 'finished']);
 
       if (orders) {
@@ -87,7 +85,6 @@ export function AlertsWidget() {
       const { data: todaySales } = await supabase
         .from('sales')
         .select('total')
-        .eq('user_id', user.uid)
         .gte('sale_date', today)
         .lt('sale_date', new Date(Date.now() + 86400000).toISOString().split('T')[0]);
 
