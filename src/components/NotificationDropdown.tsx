@@ -38,6 +38,23 @@ export function NotificationDropdown() {
     return () => clearInterval(interval);
   }, [fetchNotifications]);
 
+  // Recargar notificaciones cuando se abre el popover
+  useEffect(() => {
+    if (open) {
+      console.log('Popover abierto, recargando notificaciones...');
+      fetchNotifications(20);
+    }
+  }, [open, fetchNotifications]);
+
+  // Debug: log cuando cambian las notificaciones
+  useEffect(() => {
+    console.log('Notificaciones actualizadas:', {
+      total: notifications.length,
+      unread: stats.unread,
+      loading
+    });
+  }, [notifications, stats.unread, loading]);
+
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'low_stock':

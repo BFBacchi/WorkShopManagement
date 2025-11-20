@@ -12,6 +12,7 @@ interface NotificationsState {
 
   // Actions
   fetchNotifications: (limit?: number) => Promise<void>;
+  generateDynamicAlerts: () => Promise<Notification[]>;
   generateNotificationsFromAlerts: () => Promise<void>;
   markAsRead: (notificationId: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
@@ -41,55 +42,68 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
       const user = useAuthStore.getState().user;
       if (!user?.uid) throw new Error('Usuario no autenticado');
 
+      // Primero intentar obtener notificaciones de la base de datos
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
-        .eq('user_id', user.uid)
         .order('created_at', { ascending: false })
         .limit(limit);
 
-      if (error) {
-        // Fallback: create notifications from alerts if table doesn't exist
-        if (error.code === 'PGRST116' || error.code === '42P01') {
-          console.warn('Notifications table not found, using fallback');
-          await get().generateNotificationsFromAlerts();
-          return;
-        }
-        throw error;
+      let dbNotifications: Notification[] = [];
+      
+      if (!error && data && data.length > 0) {
+        // Si hay notificaciones en la BD, usarlas
+        dbNotifications = (data || []).map((item: any) => ({
+          _uid: item.user_id,
+          _id: item.id,
+          type: item.type,
+          title: item.title,
+          message: item.message,
+          severity: item.severity,
+          read: item.read || false,
+          related_id: item.related_id,
+          related_type: item.related_type,
+          action_url: item.action_url,
+          created_at: item.created_at,
+          read_at: item.read_at,
+        }));
       }
 
-      const notifications: Notification[] = (data || []).map((item: any) => ({
-        _uid: item.user_id,
-        _id: item.id,
-        type: item.type,
-        title: item.title,
-        message: item.message,
-        severity: item.severity,
-        read: item.read || false,
-        related_id: item.related_id,
-        related_type: item.related_type,
-        action_url: item.action_url,
-        created_at: item.created_at,
-        read_at: item.read_at,
-      }));
+      // Generar alertas dinámicas (igual que en analíticas)
+      const dynamicNotifications = await get().generateDynamicAlerts();
+      
+      // Combinar y eliminar duplicados (priorizar BD sobre dinámicas)
+      const combinedNotifications = [...dbNotifications];
+      const dbIds = new Set(dbNotifications.map(n => n._id));
+      
+      dynamicNotifications.forEach((notif) => {
+        if (!dbIds.has(notif._id)) {
+          combinedNotifications.push(notif);
+        }
+      });
 
-      set({ notifications });
+      // Ordenar por fecha (más recientes primero)
+      combinedNotifications.sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+
+      set({ notifications: combinedNotifications.slice(0, limit) });
       get().updateStats();
     } catch (error) {
       console.error('Error fetching notifications:', error);
-      // Fallback: create notifications from alerts if table doesn't exist
-      if ((error as any)?.code === 'PGRST116' || (error as any)?.code === '42P01') {
-        console.warn('Notifications table not found, using fallback');
-        await get().generateNotificationsFromAlerts();
-      }
+      // Fallback: solo usar alertas dinámicas
+      const dynamicNotifications = await get().generateDynamicAlerts();
+      set({ notifications: dynamicNotifications });
+      get().updateStats();
     } finally {
       set({ loading: false });
     }
   },
 
-  generateNotificationsFromAlerts: async () => {
+  // Nueva función que retorna las alertas sin actualizar el estado
+  generateDynamicAlerts: async (): Promise<Notification[]> => {
     const user = useAuthStore.getState().user;
-    if (!user?.uid) return;
+    if (!user?.uid) return [];
 
     const notifications: Notification[] = [];
 
@@ -98,7 +112,6 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
       const { data: products } = await supabase
         .from('products')
         .select('id, name, stock, min_stock')
-        .eq('user_id', user.uid)
         .eq('status', 'active');
 
       if (products) {
@@ -125,7 +138,6 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
       const { data: orders } = await supabase
         .from('repair_orders')
         .select('id, order_number, estimated_delivery, status')
-        .eq('user_id', user.uid)
         .in('status', ['received', 'diagnosed', 'in_repair', 'waiting_parts', 'finished']);
 
       if (orders) {
@@ -155,11 +167,45 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
         });
       }
 
-      set({ notifications });
-      get().updateStats();
+      // Check today's sales (low revenue alert) - igual que en analíticas
+      const today = new Date().toISOString().split('T')[0];
+      const { data: todaySales } = await supabase
+        .from('sales')
+        .select('total')
+        .gte('sale_date', today)
+        .lt('sale_date', new Date(Date.now() + 86400000).toISOString().split('T')[0]);
+
+      if (todaySales) {
+        const totalRevenue = todaySales.reduce((sum, sale) => sum + (sale.total || 0), 0);
+        // Alert if revenue is less than $100 (configurable threshold)
+        if (totalRevenue < 100 && todaySales.length > 0) {
+          notifications.push({
+            _uid: user.uid,
+            _id: 'low-revenue-today',
+            type: 'low_revenue',
+            title: 'Ventas Bajas Hoy',
+            message: `Las ventas de hoy son ${totalRevenue.toFixed(2)} (umbral: $100)`,
+            severity: 'low',
+            read: false,
+            related_id: null,
+            related_type: 'sales',
+            action_url: '/analytics',
+            created_at: new Date().toISOString(),
+          });
+        }
+      }
     } catch (error) {
-      console.error('Error generating notifications from alerts:', error);
+      console.error('Error generating dynamic alerts:', error);
     }
+
+    return notifications;
+  },
+
+  // Función legacy que actualiza el estado (mantener para compatibilidad)
+  generateNotificationsFromAlerts: async () => {
+    const dynamicNotifications = await get().generateDynamicAlerts();
+    set({ notifications: dynamicNotifications });
+    get().updateStats();
   },
 
   markAsRead: async (notificationId: string) => {
@@ -171,8 +217,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
       const { error } = await supabase
         .from('notifications')
         .update({ read: true, read_at: new Date().toISOString() })
-        .eq('id', notificationId)
-        .eq('user_id', user.uid);
+        .eq('id', notificationId);
 
       if (error && error.code !== 'PGRST116' && error.code !== '42P01') {
         throw error;
@@ -204,7 +249,6 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
         await supabase
           .from('notifications')
           .update({ read: true, read_at: new Date().toISOString() })
-          .eq('user_id', user.uid)
           .eq('read', false);
       }
 
@@ -293,8 +337,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
       const { error } = await supabase
         .from('notifications')
         .delete()
-        .eq('id', notificationId)
-        .eq('user_id', user.uid);
+        .eq('id', notificationId);
 
       if (error && error.code !== 'PGRST116' && error.code !== '42P01') {
         throw error;
