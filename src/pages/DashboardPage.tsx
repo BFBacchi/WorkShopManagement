@@ -24,6 +24,7 @@ import { usePOSStore } from '@/features/pos/stores/pos-store';
 import { useInventoryStore } from '@/features/inventory/stores/inventory-store';
 import { useCustomersStore } from '@/features/customers/stores/customers-store';
 import { formatCurrency } from '@/features/pos/utils/pos-utils';
+import { isAdminOrManager } from '@/lib/auth-helpers';
 
 interface DashboardStats {
   totalOrders: number;
@@ -78,11 +79,10 @@ export default function DashboardPage() {
     
     setLoading(true);
     try {
-      // Load repairs data
+      // Load repairs data - todos los usuarios ven todos los datos
       const { data: ordersData } = await supabase
         .from('repair_orders')
         .select('*')
-        .eq('user_id', user.uid)
         .order('created_at', { ascending: false })
         .limit(100);
 
@@ -146,11 +146,10 @@ export default function DashboardPage() {
         timestamp: number;
       }> = [];
 
-      // Get recent repair orders
+      // Get recent repair orders - todos los usuarios ven todos los datos
       const { data: recentOrders } = await supabase
         .from('repair_orders')
         .select('order_number, customer_name, device_brand, device_model, created_at, status')
-        .eq('user_id', user.uid)
         .order('created_at', { ascending: false })
         .limit(5);
 
@@ -172,11 +171,10 @@ export default function DashboardPage() {
         });
       }
 
-      // Get recent sales
+      // Get recent sales - todos los usuarios ven todos los datos
       const { data: recentSales } = await supabase
         .from('sales')
         .select('sale_number, customer_name, items, total, created_at')
-        .eq('user_id', user.uid)
         .order('created_at', { ascending: false })
         .limit(5);
 

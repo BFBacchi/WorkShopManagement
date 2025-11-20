@@ -79,7 +79,6 @@ export const usePOSStore = create<POSState>((set, get) => ({
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('user_id', user.uid)
         .order('created_at', { ascending: false })
         .limit(100);
       

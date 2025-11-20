@@ -44,7 +44,6 @@ export default function RepairsPage() {
       const { data: ordersData, error: ordersError } = await supabase
         .from('repair_orders')
         .select('*')
-        .eq('user_id', user.uid)
         .order('created_at', { ascending: false })
         .limit(100);
       
@@ -83,7 +82,6 @@ export default function RepairsPage() {
       const { data: customersData, error: customersError } = await supabase
         .from('customers')
         .select('*')
-        .eq('user_id', user.uid)
         .order('created_at', { ascending: false })
         .limit(100);
       

@@ -99,8 +99,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
       
       let query = supabase
         .from('products')
-        .select('*')
-        .eq('user_id', user.uid);
+        .select('*');
       
       // Apply filters
       if (filters?.category && filters.category !== 'all') {

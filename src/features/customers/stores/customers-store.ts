@@ -62,7 +62,6 @@ export const useCustomersStore = create<CustomersState>((set, get) => ({
       const { data, error } = await supabase
         .from('customers')
         .select('*')
-        .eq('user_id', user.uid)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
