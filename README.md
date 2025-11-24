@@ -2,6 +2,16 @@
 
 Sistema completo de gestión para talleres mecánicos que integra punto de venta (POS), gestión de reparaciones, inventario, análisis y gestión de clientes.
 
+## 🚀 Demo en Vivo
+
+Puedes probar la aplicación en producción:
+
+**URL:** https://work-shop-management.vercel.app/
+
+**Credenciales de acceso:**
+- **Usuario:** test@test.com
+- **Contraseña:** test
+
 ## ✨ Características
 
 ### 🎯 Módulos Principales

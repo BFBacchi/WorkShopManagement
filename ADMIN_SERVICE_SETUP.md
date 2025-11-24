@@ -28,7 +28,7 @@ VITE_SUPABASE_URL=tu_url_de_supabase
 VITE_SUPABASE_ANON_KEY=tu_anon_key
 
 # Nueva variable (SOLO para desarrollo)
-VITE_SUPABASE_SERVICE_ROLE_KEY=tu_service_role_key
+VITE_SUPABASE_SERVICE_ROLE_KEY=aslkdjasdlfjkhadsrfsfsdf
 ```
 
 **Ejemplo:**
